@@ -7,7 +7,7 @@ from IPython.display import display
 from IPython.display import HTML
 import dateutil;
 import json;
-import urllib;
+import urllib.request;
 
 import matplotlib
 #matplotlib.style.use('ggplot')
