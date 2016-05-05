@@ -16,7 +16,6 @@ import os
 import time
 from IPython.display import display
 from IPython.display import Image
-from StringIO import StringIO
 
 from scipy	import stats;
 

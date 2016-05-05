@@ -15,7 +15,6 @@ import os
 import time
 from IPython.display import display
 from IPython.display import Image
-from StringIO import StringIO
 
 import scipy;
 from scipy	import stats;
@@ -32,7 +31,7 @@ from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn import tree
 from sklearn import datasets
 from IPython.display import Image
-import seaborn as sns
+#import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
@@ -49,11 +48,11 @@ def run_cv(X,y,clf_class,printDebug = True , clf=None):
         y_train = y[train_index]
         # Initialize a classifier with key word arguments
         clf = clf_class(**kwargs) if (clf is None)  else clf;
-        if (printDebug): print "*",i,;
+        if (printDebug): print ("*",i);
         clf.fit(X_train,y_train)
         y_pred[test_index] = clf.predict(X_test)
         i = i +1;
-    if (printDebug): print "*";
+    if (printDebug): print ("*");
     return y_pred
 
 # -*- coding: utf-8 -*-
@@ -102,7 +101,7 @@ def draw_confusion_matrices(confusion_matricies,class_names):
 #
 def DrawFeatureImportance(dft,clf, title="", ax =None, m=15):
     if ( not hasattr(clf,'feature_importances_') ):
-        print "No Feature Importance matrix for this classifier:", clf
+        print ("No Feature Importance matrix for this classifier:", clf)
         return;
         
     # Get Feature Importance from the classifier
@@ -125,7 +124,7 @@ def DrawFeatureImportance(dft,clf, title="", ax =None, m=15):
 def DrawFeatureImportanceMatrix(df, clfs):
     fig = plt.figure(figsize = (25,3))
     plt.subplots_adjust(wspace = 1.2);
-    for i in range(len(clfs)/2):
+    for i in range(int (len(clfs)/2)) :
         classifierName, clf = clfs[i*2], clfs[i*2+1]
         if ( not hasattr(clf,'feature_importances_') ):
             continue;
@@ -152,44 +151,6 @@ def encodeCategorical(df, columnName, newColumnName = None, makeCopy = False):
 
     return (df_mod, targets, mapToInt)
     
-#
-# Take a data frame, take set of column names that are features
-# 
-#
-def getXy(df, featureColumns= None,
-             dropColumns = None,
-             predictColumn=None, 
-             printDebug = True,
-             scale = True,
-             y= None):
-                 
-    X = df[featureColumns] if not (featureColumns is None) else df;
-    X = X.drop(predictColumn, axis=1, errors='ignore')    
-    X = X.drop(dropColumns, axis=1, errors='ignore');
-    
-    # Assume last column as outcome if not given    
-    if (predictColumn is None and y is None):
-        predictColumn = df.columns[-1]
-    dfm,targets,mi = encodeCategorical(df, predictColumn )
-    y = dfm[predictColumn]
-    
-    t = X.select_dtypes(exclude=[np.number])
-    
-    if ( len(t.columns) > 0) :
-        raise Exception("nonnumeric columns? "  + t.columns);
-
-    X.fillna(0, inplace=True)
-    X = X.as_matrix().astype(np.float)
-    if (scale):
-        scaler = StandardScaler()
-        X = scaler.fit_transform(X)
-  
-    print "Feature space holds %d observations and %d features" % X.shape
-    print "Unique target labels:", np.unique(y)
-     
-    return (X, y, targets);
-
-
 #Classification Problems 
 # Usually in case of classifcation, it is best to draw scatter plot of 
 # Target Varible using Scatter plot
@@ -224,8 +185,8 @@ def Classify(df, y,
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
       
-    print "Feature space holds %d observations and %d features" % X.shape
-    print "Unique target labels:", class_names
+    print ("Feature space holds %d observations and %d features" % X.shape)
+    print ("Unique target labels:", class_names)
          
     cls = [# Note: SVM takes long time to run - so commenting out
            #"SVM"               , sklearn.svm.SVC(), 
@@ -242,7 +203,7 @@ def Classify(df, y,
         
     ret_accuracy = [];
     cms = [];
-    for i in arange(len(cls)/2):
+    for i in arange( int (len(cls)/2) ):
         nm = cls[i*2];
         cl = cls[i*2 +1]
         y_pred = run_cv(X,y, None, clf=cl, printDebug=printDebug)
@@ -250,7 +211,7 @@ def Classify(df, y,
         cm = confusion_matrix(y, y_pred )
         ret_accuracy.append( (nm, ac, cm) )
         if (printDebug): 
-            print "%20s accuracy: %03f "% (nm, ac) ;
+            print ("%20s accuracy: %03f "% (nm, ac) );
             print('{}\n'.format(metrics.classification_report(y, y_pred)))
         cms.append( (nm, cm) );
     if (drawConfusionMatrix): 
@@ -261,12 +222,12 @@ def Classify(df, y,
     return (X, y, ret_accuracy,cls);
 
 def visualizeTree(tree, feature_names, class_names= None, fileName="dt.png"):
-    with open("dt.dot", 'w') as f:
+    with open("temp/dt.dot", 'w') as f:
         export_graphviz(tree, out_file=f, feature_names=feature_names
                         ,class_names = class_names, filled = True
                         )
     
-    command = ["dot", "-Tpng", "dt.dot", "-o", fileName]
+    command = ["dot", "-Tpng", "temp/dt.dot", "-o", fileName]
     try:
         subprocess.check_call(command)
         Image(filename=fileName)
@@ -283,12 +244,13 @@ def DrawDecisionTree(X,y, cls, class_names=None):
         class_names = y.unique().astype(str);
         class_names.sort()
         
-    for k in range(len(cls)/2):
+    for k in range(int( len(cls)/2) ) :
         d = cls[k*2+1];
         if (str(type(d)).find('DecisionTreeClassifier') > 0):
-            fileName = "d{}.png".format(k);
-            print "Draw Decision Tree: " + str(d)[0:60] + " " + fileName ;
-            visualizeTree(d, X.columns, class_names=class_names, fileName = "d"+str(k)+".png")
+            fileName = "temp/d{}.png".format(k);
+            print ("Draw Decision Tree: " + str(d)[0:60] + " " + fileName );
+            #visualizeTree(d, X.columns, class_names=class_names, fileName = "d"+str(k)+".png")
+            visualizeTree(d, X.columns, class_names=class_names, fileName = fileName)
             imgs.append(fileName)
     
     for img in imgs:

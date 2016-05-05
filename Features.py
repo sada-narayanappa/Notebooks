@@ -145,7 +145,7 @@ def prepareDF(dfi, makeCopy = False,
     
     t = df.select_dtypes(exclude=[np.number])
     df = df.drop(t, axis=1)
-    print "Dropping in prepareDF - ", t.columns;
+    print ("Dropping in prepareDF - ", t.columns);
 
     return df
 

@@ -11,11 +11,9 @@ import re;
 plt.style.use('fivethirtyeight') # Good looking plots
 pd.set_option('display.max_columns', None) # Display any number of columns
 #import seaborn as sns
-import platform
-if platform.system() == "Windows":
-    from win32com.client import Dispatch
-    from win32com.client.gencache import EnsureDispatch
-    from win32com.client import constants
+from win32com.client import Dispatch
+from win32com.client.gencache import EnsureDispatch
+from win32com.client import constants
 from IPython.display import IFrame
 
 np.set_printoptions(precision=2, linewidth=1000)
@@ -49,7 +47,7 @@ def Excel2Html(file, overwrite=True, show=True, leaveItOpen = True,
 #           f.close();
 #       except:
 #           fileOpenNow =True;
-    print cwd, nef, nhtml, fileOpenNow
+    print (cwd, nef, nhtml, fileOpenNow)
            
     wb=xl.Workbooks.Open(cwd)
     xl.Visible = True #-- optional
@@ -143,7 +141,7 @@ class A:
 
     def p(self):
         np.set_printoptions(precision=2, linewidth=180)
-        print "shape=", self.a.shape, " name:", self.name
+        print ("shape=", self.a.shape, " name:", self.name)
         s = str(self.a)
         s = s.replace('[', '')
         s = s.replace(']', '')
@@ -283,17 +281,11 @@ def createIcon(df,idx):
         else:
             t = t.value_counts();
             k = "bar";
-
-    if not isAnyDataPoint(t):  
-       return None;
+    else:
+       if not isAnyDataPoint(t):  
+           return None;
                
-    ax=None;
-    try:
-        ax = t.plot(kind=k, figsize=(1*scale, 0.5*scale), grid=True);
-    except :
-        print "Error while getting icon for {} {} type {}".format(idx, df.columns[idx], df.dtypes[idx]);
-        return "";
-    
+    ax=t.plot(kind=k, figsize=(1*scale, 0.5*scale), grid=True);
     ax.get_xaxis().set_visible(True)
     ax.get_yaxis().set_visible(True)
     ax.set_frame_on(False)
@@ -310,6 +302,7 @@ def getIcons(df,h):
     for c in df.columns:
         fig = createIcon(df,idx);
         if ( fig):
+            #fig = "/files/" + fig;
             h1 = h1 + "<td><a class='thumbnail' href='#thumb'><img src='" + fig;
             h1 = h1 + "' border=0 style='{margins: 0;}' width=64 height=64 ";
             h1 = h1 + "/> <span><img src='"+ fig + "' /><br /></span></a>";
@@ -380,31 +373,6 @@ def displayDFs(dfs, maxrows = 6, showTypes = True, showIcons=True,
     otr += "</table>"
     display(HTML(otr))
 
-#def displayDFs8(*dfs):
-#    a= []
-#    for b in dfs:
-#        a.append(b)
-#    displayDFs(a)
-#
-# This will describe the data set
-# It treats bool as nominal values and shows the categorical numbers
-#def describeDF(df):
-    # Find all numeric and non numeric columns and split them
-#    df1 = df.select_dtypes(include=[object, bool])
-#    df1 = df1.astype(object);
-#    df1d= df1.describe() if len(df1.columns) > 0 else None;
-#    df2 = df.select_dtypes(exclude=[object, bool])
-#    df2d= df2.describe() if len(df2.columns) > 0 else None;
-#
-#    dfTypes=pd.DataFrame(df.dtypes)
-#    dfTypes=dfTypes.transpose()
-#    display(dfTypes)
-#
-#    displayDFs([df1, df1d], showIcons = [True, False] ) if len(df1.columns) else None;
-#    displayDFs([df2, df2d], showIcons = [True, False] ) if len(df2.columns) else None;
-
-
-
 def formatContent(c):       
     c1 = str(c).lower().strip()
     g=[k.lower().strip() for k in "complete, finished, success, Yes".split(",") ]
@@ -419,32 +387,6 @@ def formatContent(c):
          s = "bgcolor=lightyellow";
         
     return "<td " + s + ">" + str(c) + "</td>"
-
-def AsHtml(df2):
-    otr = "<table width=100% style='font-size: 11px;'>\n"
-    bg1="#efefef";
-    bg2="#fefefe";
-    bg = bg1;
-
-    otr += "<tr bgcolor=lightblue>" + str.join("", ["<th>"+k +"</th>" for k in df2.columns]) + "</tr>\n";
-    for i, r in df2.iterrows():
-        td = ""
-        for j,c in enumerate(r):
-            #print "==>",j, c, df2.dtypes[j].kind in 'biufc'
-            if df2.dtypes[j].kind in 'biufc':
-                td += "<td style='text-align: right'>" +str(c) + "</td>\n";
-            else: 
-
-                td += formatContent(c);
-
-        #td   = ["<td style='text-align: right'>"+k +"</td>" for k in r]
-        bg = bg2 if ( bg == bg1 ) else bg1;
-        otr += "<tr bgcolor=" + bg + ">" + str.join("", td) + "</tr>\n"
-        #print i,                
-        #otr += "<td bgcolor=" + bg + ">" + dim + "<br>" + h + "</td><td>&nbsp;</td>"
-    otr += "</table>"
-    display(HTML(otr))
-    #print otr
     
 if not os.path.exists("temp"):
     os.mkdir("temp")
@@ -452,12 +394,3 @@ if not os.path.exists("temp"):
 #Lets Clean up before we start
 [os.unlink(f) for f in glob.glob("./temp/*.png")]
     
-'''
-=======================================================================================
-Test
-=======================================================================================
-'''
-#print "All is well"
-
-def B():
-    print "Asdsdssfdsfs sd"
