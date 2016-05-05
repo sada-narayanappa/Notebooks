@@ -4,7 +4,7 @@ from collections import Counter
 import numpy as np
 import pylab as pl
 from matplotlib.colors import ListedColormap
-from sklearn import neighbors, datasets, cluster, preprocessing, decomposition
+from sklearn import neighbors, datasets, cluster, preprocessing, decomposition, svm, datasets
 from sklearn.decomposition import PCA
 import pandas as pd
 from pandas.tools.plotting import scatter_matrix
@@ -23,7 +23,11 @@ import sklearn.ensemble;
 import sklearn.neighbors
 from sklearn.preprocessing import StandardScaler
 from sklearn import metrics
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import *
+from sklearn.metrics import roc_curve, auc
+from sklearn.preprocessing import label_binarize
+from sklearn.cross_validation import train_test_split
+from sklearn.multiclass import OneVsRestClassifier
 
 import os
 import subprocess
@@ -33,10 +37,11 @@ from sklearn import datasets
 from IPython.display import Image
 #import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+import pydotplus
+from sklearn.externals.six import StringIO
 
 # -*- coding: utf-8 -*-
-def run_cv(X,y,clf_class,printDebug = True , clf=None):
+def run_cv(X,y,clf_class,printDebug = False , clf=None):
     # Construct a kfolds object
     kf = sklearn.cross_validation.KFold(len(y),n_folds=5,shuffle=True)
     y_pred = y.copy()
@@ -48,7 +53,7 @@ def run_cv(X,y,clf_class,printDebug = True , clf=None):
         y_train = y[train_index]
         # Initialize a classifier with key word arguments
         clf = clf_class(**kwargs) if (clf is None)  else clf;
-        if (printDebug): print ("*",i);
+        if (printDebug): print ("*",i, end ="");
         clf.fit(X_train,y_train)
         y_pred[test_index] = clf.predict(X_test)
         i = i +1;
@@ -221,21 +226,17 @@ def Classify(df, y,
 
     return (X, y, ret_accuracy,cls);
 
-def visualizeTree(tree, feature_names, class_names= None, fileName="dt.png"):
-    with open("temp/dt.dot", 'w') as f:
-        export_graphviz(tree, out_file=f, feature_names=feature_names
-                        ,class_names = class_names, filled = True
-                        )
-    
-    command = ["dot", "-Tpng", "temp/dt.dot", "-o", fileName]
-    try:
-        subprocess.check_call(command)
-        Image(filename=fileName)
-        return fileName;
-    except e:
-        print("Could not run dot, ie graphviz", e)
-    return "";       
-   
+def visualizeTree(dcls, feature_names, class_names= None, fileName="dt.png"):
+    dot_data = StringIO()  
+    tree.export_graphviz(dcls, out_file=dot_data,  
+                         feature_names= feature_names,  
+                         class_names= class_names,  
+                         filled=True, rounded=True,  
+                         special_characters=True)  
+    graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
+    display(Image(graph.create_png()))
+    return "";
+
 ##======================= DRAW Decision Trees here 
 def DrawDecisionTree(X,y, cls, class_names=None):
     imgs=[]
@@ -243,19 +244,15 @@ def DrawDecisionTree(X,y, cls, class_names=None):
     if ( class_names is None):
         class_names = y.unique().astype(str);
         class_names.sort()
-        
-    for k in range(int( len(cls)/2) ) :
-        d = cls[k*2+1];
-        if (str(type(d)).find('DecisionTreeClassifier') > 0):
-            fileName = "temp/d{}.png".format(k);
-            print ("Draw Decision Tree: " + str(d)[0:60] + " " + fileName );
-            #visualizeTree(d, X.columns, class_names=class_names, fileName = "d"+str(k)+".png")
-            visualizeTree(d, X.columns, class_names=class_names, fileName = fileName)
-            imgs.append(fileName)
+    if (str(type(cls)).find('DecisionTreeClassifier')):
+        visualizeTree(d, X.columns, class_names=class_names, fileName = fileName)
+    else:
+        for k in range(int( len(cls)/2) ) :
+            d = cls[k*2+1];
+            if (str(type(d)).find('DecisionTreeClassifier') > 0):
+                visualizeTree(d, X.columns, class_names=class_names, fileName = fileName)
+                imgs.append(fileName)
     
-    for img in imgs:
-        display(Image(filename=img));
-        
 #======================== Get COde For DecisionTree        
 # Here is how to use this code
 #if __name__ == '__main__':
