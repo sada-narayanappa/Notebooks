@@ -37,8 +37,8 @@ def DetermineSeperator(line):
     return sep;
     
 def getAuraDF(link):
-    f = urllib.urlopen(link)
-    js = f.read()
+    f = urllib.request.urlopen(link)
+    js = f.read().decode('UTF-8')
     if (js.find("$rs=") > 0):
         js = js[js.find("$rs=")+5:]
         #print js[0:100]

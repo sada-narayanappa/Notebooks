@@ -283,10 +283,10 @@ def createIcon(df,idx):
         else:
             t = t.value_counts();
             k = "bar";
-    else:
-       if not isAnyDataPoint(t):  
-           return None;
+    if not isAnyDataPoint(t):  
+       return None;
                
+    #print ("N= " , df.columns[idx]);
     ax=t.plot(kind=k, figsize=(1*scale, 0.5*scale), grid=True);
     ax.get_xaxis().set_visible(True)
     ax.get_yaxis().set_visible(True)
