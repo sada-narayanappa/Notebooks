@@ -226,7 +226,7 @@ def Classify(df, y,
 
     return (X, y, ret_accuracy,cls);
 
-def visualizeTree(dcls, feature_names, class_names= None, fileName="dt.png"):
+def visualizeTree(dcls, feature_names, class_names= None):
     dot_data = StringIO()  
     tree.export_graphviz(dcls, out_file=dot_data,  
                          feature_names= feature_names,  
@@ -244,14 +244,14 @@ def DrawDecisionTree(X,y, cls, class_names=None):
     if ( class_names is None):
         class_names = y.unique().astype(str);
         class_names.sort()
-    if (str(type(cls)).find('DecisionTreeClassifier')):
-        visualizeTree(d, X.columns, class_names=class_names, fileName = fileName)
+    if (str(type(cls)).find('DecisionTreeClassifier') > 0 ):
+        visualizeTree(cls, X.columns, class_names=class_names)
     else:
         for k in range(int( len(cls)/2) ) :
-            d = cls[k*2+1];
-            if (str(type(d)).find('DecisionTreeClassifier') > 0):
-                visualizeTree(d, X.columns, class_names=class_names, fileName = fileName)
-                imgs.append(fileName)
+            dcls = cls[k*2+1];
+            if (str(type(dcls)).find('DecisionTreeClassifier') > 0):
+                visualizeTree(dcls, X.columns, class_names=class_names)
+
     
 #======================== Get COde For DecisionTree        
 # Here is how to use this code
