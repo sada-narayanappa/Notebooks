@@ -10,11 +10,13 @@ import glob;
 import re;
 plt.style.use('fivethirtyeight') # Good looking plots
 pd.set_option('display.max_columns', None) # Display any number of columns
-#import seaborn as sns
-from win32com.client import Dispatch
-from win32com.client.gencache import EnsureDispatch
-from win32com.client import constants
-from IPython.display import IFrame
+import platform
+
+if (platform == "Windows"):
+	from win32com.client import Dispatch
+	from win32com.client.gencache import EnsureDispatch
+	from win32com.client import constants
+	from IPython.display import IFrame
 
 np.set_printoptions(precision=2, linewidth=1000)
 '''
