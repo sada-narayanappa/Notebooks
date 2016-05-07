@@ -11,6 +11,7 @@ import re;
 plt.style.use('fivethirtyeight') # Good looking plots
 pd.set_option('display.max_columns', None) # Display any number of columns
 import platform
+import matplotlib
 
 if (platform == "Windows"):
 	from win32com.client import Dispatch
@@ -19,14 +20,9 @@ if (platform == "Windows"):
 	from IPython.display import IFrame
 
 np.set_printoptions(precision=2, linewidth=1000)
-'''
-**** Add this line in your IPython Notebook
 
-sys.path.append(os.path.abspath(".."))
-import NotebookUtils
-from NotebookUtils import *
-reload(NotebookUtils)
-'''
+matplotlib.rcParams['lines.linewidth'] = 1
+matplotlib.rcParams['lines.color'] = 'r'
 
 #=======================================================================================
 def Excel2Html(file, overwrite=True, show=True, leaveItOpen = True, 
@@ -64,28 +60,34 @@ def Excel2Html(file, overwrite=True, show=True, leaveItOpen = True,
         display(IFrame(nhtml, width, length))    
 
 #=======================================================================================
-# Graph a formula Usage:
+# EXAMPLE USE
+# graph a function 
+# graphFunction(lambda x: x ** 3, 0,10)
 #
-# NotebookUtils.graph (lambda x: x ** 3, range(0,10))
-#
-def graphFunction(x_range   = np.linspace(0,10,10),      # <<= Default Range 0 to 10
-          f         = lambda x: x,              # <<= Can be Array or Function
-          xlabel    = "",
-          ylabel    = "",
-          label     = ""
-          ):
-    x = x_range
-    if ( callable(f)):
-        y = map(f, x)
+# graphFunction('x', 0,1, "r", "$x$", "$z$", "", '.') #, 'o', "sada")
+# graphFunction('1/(1+np.exp(-x))', -6,6, "g", "$x$", "$z$", "",'.',"$z=\\frac{1}{1+e^{-\\theta^{T} x}}$") #, 'o', "sada")
+# graphFunction(lambda x: log(x), 0,6, "b", "$x$", "$z$", "",'.',"$log(x)$") #, 'o', "sada")
+
+def graphFunction(formula, xmin, xmax, c=None, xlabel= None, ylabel=None, title=None, marker=None, 
+		  label=None, legend=True, legendLoc=2):
+    x = np.linspace(xmin, xmax, 100)
+    if ( callable(formula)):
+        y = np.apply_along_axis(formula, 0, x)
+        #print ("Evaluating Function", str(formula), y)
+    elif (type(formula) == str):
+        y = eval(formula)
+        #print ("Evaluating", formula, y)
     else:
-        y = f
+        y = formula
 
-    plt.plot(x, y, marker="o", label=label)
-
-    plt.xlabel(xlabel)  if (xlabel != "") else None
-    plt.ylabel(ylabel)  if (ylabel != "") else None
-    plt.legend()        if (label  != "") else None
-
+    #return 
+    label = label if label else str(formula);
+    plt.plot(x, y, c=c, marker=marker, label=label, linewidth=1)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title (title, fontsize = 15)
+    fs = 20 if (label.find("$") > 0) else 15
+    plt.legend(fontsize=15, loc=legendLoc) if ( legend) else None;
 
 '''
 =======================================================================================
