@@ -390,8 +390,8 @@ def formatContent(c):
         
     return "<td " + s + ">" + str(c) + "</td>"
     
-if not os.path.exists("temp"):
-    os.mkdir("temp")
+#if not os.path.exists("temp"):
+#    os.mkdir("temp")
 
 #Lets Clean up before we start
 [os.unlink(f) for f in glob.glob("./temp/*.png")]
