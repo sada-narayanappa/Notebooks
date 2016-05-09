@@ -3,3 +3,4 @@ nohup.out
 temp
 nogit
 .vs
+__pycache__

@@ -3,7 +3,6 @@ from numpy import *
 from collections import Counter
 import numpy as np
 import pylab as pl
-from sklearn.decomposition import PCA
 import pandas as pd
 from pandas.tools.plotting import scatter_matrix
 import numpy.random as random
@@ -149,5 +148,3 @@ def prepareDF(dfi, makeCopy = False,
 
     return df
 
-
-    

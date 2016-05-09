@@ -12,6 +12,9 @@ plt.style.use('fivethirtyeight') # Good looking plots
 pd.set_option('display.max_columns', None) # Display any number of columns
 import platform
 import matplotlib
+from sklearn import neighbors, datasets, cluster, preprocessing, decomposition
+from sklearn.decomposition import PCA
+from Features import prepareDF
 
 if (platform == "Windows"):
 	from win32com.client import Dispatch
@@ -304,7 +307,10 @@ def getIcons(df,h):
     h1="<tr><td></td>";
     idx=0;
     for c in df.columns:
-        fig = createIcon(df,idx);
+        try:
+           fig = createIcon(df,idx);
+        except:
+           print ("Error while getting icon for ", c);
         if ( fig):
             #fig = "/files/" + fig;
             h1 = h1 + "<td><a class='thumbnail' href='#thumb'><img src='" + fig;
@@ -369,7 +375,6 @@ def displayDFs(dfs, maxrows = 6, showTypes = True, showIcons=True,
 
         if (shIcons and nd.shape[0] > 0):
             h = getIcons(nd,h);
-
         if (showStats and nd.shape[0] > 0):
             h = addDescribe(nd,h);
             
@@ -398,3 +403,36 @@ def formatContent(c):
 #Lets Clean up before we start
 [os.unlink(f) for f in glob.glob("./temp/*.png")]
     
+def PCAPlot(dfL, predictColumn, s =10):
+    predictColumnIdx = predictColumn+'_idx'
+    
+    ny = dfL[predictColumn]
+    df = prepareDF(dfL, makeCopy=True)
+    df = df.drop(predictColumn, axis=1)
+    pca= PCA(n_components= 2)
+    pca.fit(df)
+    nX = pca.transform(df)
+    
+    le = preprocessing.LabelEncoder()
+    labels = le.fit_transform(ny)
+    le.classes_
+    
+    nDf = pd.DataFrame(nX)
+    nDf[predictColumn] = ny;
+    nDf[predictColumnIdx] = labels;
+    
+    c="r,g,b,c,m,y,k,w".split(",")
+    
+    for i,j in enumerate(le.classes_):
+        dd = nDf[nDf[predictColumnIdx] == i]
+        ll = str(le.classes_[i]);
+        lb = ll + ":" + str(i) if ( ll != str(i)) else str(ll);
+        #print( i,j )
+        #plt.scatter(dd[[0]], dd[[1]], s=40, c=dd[predictColumnIdx].apply(lambda x:c[x]));
+        plt.scatter(dd[[0]], dd[[1]], s=40, c=dd[predictColumnIdx].apply(lambda x:c[x]), label=lb);
+    
+    plt.legend();
+
+    return nDf;
+
+
