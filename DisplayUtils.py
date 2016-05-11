@@ -436,3 +436,10 @@ def PCAPlot(dfL, predictColumn, s =10):
     return nDf;
 
 
+def plotPercentHist(x, range=10):
+		  br = np.arange(5)/4
+		  h, be = np.histogram(x,bins=br,range=(0.0,1.0), normed=True)
+		  perc = h/np.sum(h)
+		  plt.bar(be[:-1],perc*100,width=be[1])
+		  plt.xticks(be);
+		  return h,be
