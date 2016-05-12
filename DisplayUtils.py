@@ -281,7 +281,7 @@ def createIcon(df,idx):
         return figName1;
 
     k = "hist"
-    if (df.dtypes[idx] == object or str(df.dtypes[idx]).find("date") >= 0):
+    if (df.dtypes[idx] == object or str(df.dtypes[idx]).find("date") >= 0 ):
         u=len(t.unique());
         if (u>100):
             return None;
@@ -436,10 +436,12 @@ def PCAPlot(dfL, predictColumn, s =10):
     return nDf;
 
 
-def plotPercentHist(x, range=10):
-		  br = np.arange(5)/4
-		  h, be = np.histogram(x,bins=br,range=(0.0,1.0), normed=True)
-		  perc = h/np.sum(h)
-		  plt.bar(be[:-1],perc*100,width=be[1])
+#
+# x must be in percentages of use - otherwise convert to percentages before this call
+#
+def plotPercentHist(x, bins=10, rangeI=(0.0,1.0)):
+		  h, be = np.histogram(x,bins=bins,range=rangeI, normed=True)
+		  plt.bar(be[:-1],h*100,width=be[1])
 		  plt.xticks(be);
 		  return h,be
+
