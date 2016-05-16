@@ -1,5 +1,5 @@
 nohup.out
-.ipynb_checkpoints
+.*
 temp
 nogit
 .vs
