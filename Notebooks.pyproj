@@ -21,6 +21,9 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="bin\exportscope.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Classification.py" />
     <Compile Include="DataFrameUtils.py" />
     <Compile Include="DisplayUtils.py" />
@@ -28,6 +31,8 @@
     <Compile Include="StatUtils.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="bin\jup.sh" />
+    <Content Include="bin\sada.sh" />
     <Content Include="SCHAS\temp\0x198e031d240-accuracy.png" />
     <Content Include="SCHAS\temp\0x198e031d240-activity.png" />
     <Content Include="SCHAS\temp\0x198e031d240-alt.png" />
@@ -68,6 +73,7 @@
     <Content Include="SCHAS\temp\d1.png" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="bin\" />
     <Folder Include="SCHAS\" />
     <Folder Include="SCHAS\temp" />
   </ItemGroup>
