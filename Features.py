@@ -138,7 +138,11 @@ def prepareDF(dfi, makeCopy = False,
         if (threshHold == None or threshHold ==0 or (o < threshHold or r < 10)) :
             if ( o == 2 or category ):
                 if ( o < threshHold or r < 10 ):
-                    df[k] = l.fit_transform(df[k])
+                   try:
+                      #print ("processing ", k);
+                      df[k] = l.fit_transform(df[k])
+                   except:
+                      print ("Error while processing {} {} ".format(k,df.columns[k]))
             else:
                 (df,v1,v2) = vectorize(df,[k])
     

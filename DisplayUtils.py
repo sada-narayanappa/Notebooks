@@ -429,7 +429,7 @@ def PCAPlot(dfL, predictColumn, s =10):
         lb = ll + ":" + str(i) if ( ll != str(i)) else str(ll);
         #print( i,j )
         #plt.scatter(dd[[0]], dd[[1]], s=40, c=dd[predictColumnIdx].apply(lambda x:c[x]));
-        plt.scatter(dd[[0]], dd[[1]], s=40, c=dd[predictColumnIdx].apply(lambda x:c[x]), label=lb);
+        plt.scatter(dd[[0]], dd[[1]], s=40, c=dd[predictColumnIdx].apply(lambda x:c[x%len(c)]), label=lb);
     
     plt.legend();
 

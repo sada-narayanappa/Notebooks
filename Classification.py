@@ -217,7 +217,7 @@ def Classify(df, y,
         ret_accuracy.append( (nm, ac, cm) )
         if (printDebug): 
             print ("%20s accuracy: %03f "% (nm, ac) );
-            print('{}\n'.format(metrics.classification_report(y, y_pred)))
+            #print('{}\n'.format(metrics.classification_report(y, y_pred)))
         cms.append( (nm, cm) );
     if (drawConfusionMatrix): 
         #print cms, class_names
