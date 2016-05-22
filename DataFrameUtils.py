@@ -48,7 +48,7 @@ def getAuraDF(link):
     else:
         return js
         
-def getDF(fileName, debug=False, headers=0, names=None):
+def getDF(fileName, debug=False, headers=0, names=None, usecols=None):
     if (    not (fileName.startswith("http://"))  and
             not (fileName.startswith("https://")) and
             not os.path.exists(fileName)):
@@ -70,12 +70,12 @@ def getDF(fileName, debug=False, headers=0, names=None):
                 sep = DetermineSeperator(line);
                 
         df1 = pd.read_csv(fileName, sep=sep, header=headers, low_memory=False,
-                          skipinitialspace =True, names=names, comment='#')
+                          skipinitialspace =True, names=names, comment='#', usecols=usecols)
     return df1;
 
     
 def LoadDataSet(fileOrString, columns=None, 
-                debug=False, headers=0, names=None, checkForDateTime=False):
+                debug=False, headers=0, names=None, checkForDateTime=False, usecols=None):
     if (fileOrString.find("\n") >=0 ):
         ps = [line.strip() for line in fileOrString.split('\n')
                 if line.strip() != '' and not line.startswith("#") ];
@@ -83,7 +83,7 @@ def LoadDataSet(fileOrString, columns=None,
         ns = [p.split(sep) for p in ps]
         df1 = pd.DataFrame(ns[1:], columns=ns[0]);
     else:               
-        df1 = getDF(fileOrString, debug=False, headers=0, names=None)     
+        df1 = getDF(fileOrString, debug=False, headers=0, names=None, usecols=usecols)     
 
     if ( df1 is None or str(type(df1)).find("DataFrame") < 0):
         return df1;
