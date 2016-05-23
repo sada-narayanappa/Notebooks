@@ -445,3 +445,12 @@ def plotPercentHist(x, bins=10, rangeI=(0.0,1.0)):
 		  plt.xticks(be);
 		  return h,be
 
+def plotBar(x, labels=None, bottom=None):
+	plt.bar(x, range(0, len(x)), bottom=bottom);
+	if (labels is None):
+		labels = range(0,len(x));
+	plt.xticks(labels);
+
+
+
+
