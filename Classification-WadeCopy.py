@@ -218,7 +218,8 @@ def Classify(df, y,
         if (printDebug): 
             print ("%20s accuracy: %03f "% (nm, ac) );
             #print('{}\n'.format(metrics.classification_report(y, y_pred)))
-            print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None, multioutput=None)))
+            #print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None, multioutput=None)))
+            print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None)))
         cms.append( (nm, cm) );
     if (drawConfusionMatrix): 
         #print cms, class_names
