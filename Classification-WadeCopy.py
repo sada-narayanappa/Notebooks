@@ -205,13 +205,15 @@ def Classify(df, y,
 
     if (not classifiers is None ):
         cls = classifiers;
-        
+    
+    y_preds = {}
     ret_accuracy = [];
     cms = [];
     for i in arange( int (len(cls)/2) ):
         nm = cls[i*2];
         cl = cls[i*2 +1]
         y_pred = run_cv(X,y, None, clf=cl, printDebug=printDebug)
+        y_preds[nm] = y_pred
         ac  = accuracy(y, y_pred);
         cm = confusion_matrix(y, y_pred )
         ret_accuracy.append( (nm, ac, cm) )
@@ -225,7 +227,7 @@ def Classify(df, y,
         draw_confusion_matrices(cms, class_names);
         DrawFeatureImportanceMatrix(df, cls)
 
-    return (X, y, ret_accuracy,cls);
+    return (X, y, ret_accuracy,cls, y_preds);
 
 def visualizeTree(dcls, feature_names, class_names= None):
     dot_data = StringIO()  
