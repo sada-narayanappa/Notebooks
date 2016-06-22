@@ -205,27 +205,30 @@ def Classify(df, y,
 
     if (not classifiers is None ):
         cls = classifiers;
-        
+    
+    y_preds = {}
     ret_accuracy = [];
     cms = [];
     for i in arange( int (len(cls)/2) ):
         nm = cls[i*2];
         cl = cls[i*2 +1]
         y_pred = run_cv(X,y, None, clf=cl, printDebug=printDebug)
+        y_preds[nm] = y_pred
         ac  = accuracy(y, y_pred);
         cm = confusion_matrix(y, y_pred )
         ret_accuracy.append( (nm, ac, cm) )
         if (printDebug): 
             print ("%20s accuracy: %03f "% (nm, ac) );
             #print('{}\n'.format(metrics.classification_report(y, y_pred)))
-            print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None, multioutput=None)))
+            #print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None, multioutput=None)))
+            print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None)))
         cms.append( (nm, cm) );
     if (drawConfusionMatrix): 
         #print cms, class_names
         draw_confusion_matrices(cms, class_names);
         DrawFeatureImportanceMatrix(df, cls)
 
-    return (X, y, ret_accuracy,cls);
+    return (X, y, ret_accuracy,cls, y_preds);
 
 def visualizeTree(dcls, feature_names, class_names= None):
     dot_data = StringIO()  
