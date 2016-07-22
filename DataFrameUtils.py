@@ -75,11 +75,14 @@ def getDF(fileName, debug=False, headers=0, names=None, usecols=None):
 
     
 def LoadDataSet(fileOrString, columns=None, 
-                debug=False, headers=0, names=None, checkForDateTime=False, usecols=None):
+                debug=False, headers=0, names=None, checkForDateTime=False, usecols=None, seperator=None):
     if (fileOrString.find("\n") >=0 ):
         ps = [line.strip() for line in fileOrString.split('\n')
                 if line.strip() != '' and not line.startswith("#") ];
-        sep = DetermineSeperator(ps[0]);
+        if (seperator is None):
+            sep = DetermineSeperator(ps[0]);
+        else:
+            sep = seperator;
         ns = [p.split(sep) for p in ps]
         df1 = pd.DataFrame(ns[1:], columns=ns[0]);
     else:               
