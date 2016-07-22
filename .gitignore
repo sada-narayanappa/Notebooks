@@ -2,5 +2,6 @@ nohup.out
 .*
 temp
 nogit
+nogit-old
 .vs
 __pycache__
