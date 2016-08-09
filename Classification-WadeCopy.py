@@ -58,7 +58,7 @@ def run_cv(X,y,clf_class,printDebug = False , clf=None):
         y_pred[test_index] = clf.predict(X_test)
         i = i +1;
     if (printDebug): print ("*");
-    return y_pred
+    return y_pred, clf
 
 # -*- coding: utf-8 -*-
 def run_cvTT(X,y,clf_class,printDebug = True , clf=None):
@@ -209,11 +209,13 @@ def Classify(df, y,
     y_preds = {}
     ret_accuracy = [];
     cms = [];
+    clfs = {}
     for i in arange( int (len(cls)/2) ):
         nm = cls[i*2];
         cl = cls[i*2 +1]
-        y_pred = run_cv(X,y, None, clf=cl, printDebug=printDebug)
+        y_pred, clfi = run_cv(X,y, None, clf=cl, printDebug=printDebug)
         y_preds[nm] = y_pred
+        clfs[nm] = clfi
         ac  = accuracy(y, y_pred);
         cm = confusion_matrix(y, y_pred )
         ret_accuracy.append( (nm, ac, cm) )
@@ -228,7 +230,7 @@ def Classify(df, y,
         draw_confusion_matrices(cms, class_names);
         DrawFeatureImportanceMatrix(df, cls)
 
-    return (X, y, ret_accuracy,cls, y_preds);
+    return (X, y, ret_accuracy,cls, y_preds, clfs);
 
 def visualizeTree(dcls, feature_names, class_names= None):
     dot_data = StringIO()  
