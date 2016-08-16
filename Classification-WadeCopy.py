@@ -230,7 +230,7 @@ def Classify(df, y,
         draw_confusion_matrices(cms, class_names);
         DrawFeatureImportanceMatrix(df, cls)
 
-    return (X, y, ret_accuracy,cls, y_preds, clfs);
+    return (X, y, ret_accuracy,cls, y_preds,clfs);
 
 def visualizeTree(dcls, feature_names, class_names= None):
     dot_data = StringIO()  
