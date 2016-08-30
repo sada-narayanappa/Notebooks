@@ -3,8 +3,11 @@ from numpy import *
 from collections import Counter
 import numpy as np
 import pylab as pl
+from matplotlib import colors
 from matplotlib.colors import ListedColormap
 from sklearn import neighbors, datasets, cluster, preprocessing, decomposition, svm, datasets
+from sklearn.svm import SVC
+
 from sklearn.decomposition import PCA
 import pandas as pd
 from pandas.tools.plotting import scatter_matrix
@@ -58,7 +61,7 @@ def run_cv(X,y,clf_class,printDebug = False , clf=None):
         y_pred[test_index] = clf.predict(X_test)
         i = i +1;
     if (printDebug): print ("*");
-    return y_pred
+    return y_pred, clf
 
 # -*- coding: utf-8 -*-
 def run_cvTT(X,y,clf_class,printDebug = True , clf=None):
@@ -156,6 +159,61 @@ def encodeCategorical(df, columnName, newColumnName = None, makeCopy = False):
 
     return (df_mod, targets, mapToInt)
     
+##########################################################################
+#
+''' Usage:
+iris = datasets.load_iris()
+X = iris.data; 
+X = iris.data[:, :2]  
+y = iris.target
+clf = neighbors.KNeighborsClassifier(15, weights='uniform')
+PlotDecisionBoundary(X,y,clf)
+
+clf = SVC(kernel="linear")
+PlotDecisionBoundary(X,y,clf)
+'''
+#
+def PlotDecisionBoundary(X,y,clf, Xtest = None, ytest = None, desc=None):
+
+    cs1 = [c for c in colors.cnames if not c.find("dark")]
+    cs1.sort(reverse = True)
+    colorsBold = ListedColormap(cs1)
+    cs2 = [c for c in colors.cnames if not c.find("light")]
+    cs2.sort(reverse = True)
+    colorsLight = ListedColormap(cs2)
+
+    pca= PCA(n_components= 2)
+    pca.fit(X)
+    nX = pca.transform(X)
+
+    # Choose Any classifier of your choice
+    clf.fit(nX, y)
+
+    x_min, x_max = nX[:, 0].min() - 1, nX[:, 0].max() + 1
+    y_min, y_max = nX[:, 1].min() - 1, nX[:, 1].max() + 1
+    h=0.02
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+
+    # Put the result into a color plot
+    Z = Z.reshape(xx.shape)
+    plt.figure()
+    plt.pcolormesh(xx, yy, Z, cmap=colorsLight, alpha =.6)
+    plt.scatter(nX[:, 0], nX[:, 1], c=y, s=30, cmap=colorsBold, alpha=1)
+
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    
+    classifierName = str(type(clf)).split(".")[-1][:-2]
+    if (Xtest == None or Ytest == None):
+        score = clf.score(X,y)
+    else:
+        score = clf.score(Xtest,Ytest)
+    title = ("%s, Score: %.2f"%(classifierName, score))
+    title = desc or title
+    plt.title(title)
+
+
 #Classification Problems 
 # Usually in case of classifcation, it is best to draw scatter plot of 
 # Target Varible using Scatter plot
@@ -205,26 +263,32 @@ def Classify(df, y,
 
     if (not classifiers is None ):
         cls = classifiers;
-        
+
+    y_preds = {}
     ret_accuracy = [];
     cms = [];
+    clfs = {}
     for i in arange( int (len(cls)/2) ):
         nm = cls[i*2];
         cl = cls[i*2 +1]
-        y_pred = run_cv(X,y, None, clf=cl, printDebug=printDebug)
+        y_pred, clfi = run_cv(X,y, None, clf=cl, printDebug=printDebug)
+        y_preds[nm] = y_pred
+        clfs[nm] = clfi
         ac  = accuracy(y, y_pred);
         cm = confusion_matrix(y, y_pred )
         ret_accuracy.append( (nm, ac, cm) )
         if (printDebug): 
             print ("%20s accuracy: %03f "% (nm, ac) );
             #print('{}\n'.format(metrics.classification_report(y, y_pred)))
+            #print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None, multioutput=None)))
+            print("%20s r^2 score: %03f"% (nm,sklearn.metrics.r2_score(y, y_pred, sample_weight=None)))
         cms.append( (nm, cm) );
     if (drawConfusionMatrix): 
         #print cms, class_names
         draw_confusion_matrices(cms, class_names);
         DrawFeatureImportanceMatrix(df, cls)
 
-    return (X, y, ret_accuracy,cls);
+    return (X, y, ret_accuracy,cls, y_preds,clfs);
 
 def visualizeTree(dcls, feature_names, class_names= None):
     dot_data = StringIO()  

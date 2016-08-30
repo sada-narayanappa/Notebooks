@@ -15,6 +15,8 @@ import matplotlib
 from sklearn import neighbors, datasets, cluster, preprocessing, decomposition
 from sklearn.decomposition import PCA
 from Features import prepareDF
+from matplotlib import colors
+
 
 if (platform == "Windows"):
 	from win32com.client import Dispatch

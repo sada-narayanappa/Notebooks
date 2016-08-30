@@ -205,7 +205,7 @@ def Classify(df, y,
 
     if (not classifiers is None ):
         cls = classifiers;
-    
+
     y_preds = {}
     ret_accuracy = [];
     cms = [];
