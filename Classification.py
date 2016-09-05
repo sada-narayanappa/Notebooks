@@ -175,6 +175,10 @@ PlotDecisionBoundary(X,y,clf)
 #
 def PlotDecisionBoundary(X,y,clf, Xtest = None, ytest = None, desc=None):
 
+    if (Xtest is None or ytest is None):
+        Xtest = X;
+        ytest = y;
+
     cs1 = [c for c in colors.cnames if not c.find("dark")]
     cs1.sort(reverse = True)
     colorsBold = ListedColormap(cs1)
@@ -182,15 +186,20 @@ def PlotDecisionBoundary(X,y,clf, Xtest = None, ytest = None, desc=None):
     cs2.sort(reverse = True)
     colorsLight = ListedColormap(cs2)
 
+    #--> We must normalize before applying PCA
     pca= PCA(n_components= 2)
     pca.fit(X)
     nX = pca.transform(X)
+    #nX = X
 
     # Choose Any classifier of your choice
     clf.fit(nX, y)
 
     x_min, x_max = nX[:, 0].min() - 1, nX[:, 0].max() + 1
     y_min, y_max = nX[:, 1].min() - 1, nX[:, 1].max() + 1
+    #x_min = 0.0; x_max = 1.0
+    #y_min = 0.0; y_max = 1.0
+
     h=0.02
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
     Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
@@ -199,19 +208,23 @@ def PlotDecisionBoundary(X,y,clf, Xtest = None, ytest = None, desc=None):
     Z = Z.reshape(xx.shape)
     plt.figure()
     plt.pcolormesh(xx, yy, Z, cmap=colorsLight, alpha =.6)
-    plt.scatter(nX[:, 0], nX[:, 1], c=y, s=30, cmap=colorsBold, alpha=1)
+    labels = unique(y)
+    ki = 0;
+    for k in labels:
+        lX = Xtest[ytest==k]
+        plt.scatter(lX[:, 0], lX[:, 1], c=cs1[ki], s=30,  label=k, alpha=1)
+        #plt.scatter(nX[:, 0], nX[:, 1], c=y, s=30, cmap=colorsBold, alpha=1, label=[0,1,2])
+        ki += 1
 
     plt.xlim(xx.min(), xx.max())
     plt.ylim(yy.min(), yy.max())
     
     classifierName = str(type(clf)).split(".")[-1][:-2]
-    if (Xtest == None or Ytest == None):
-        score = clf.score(X,y)
-    else:
-        score = clf.score(Xtest,Ytest)
+    score = clf.score(Xtest,ytest)
     title = ("%s, Score: %.2f"%(classifierName, score))
     title = desc or title
     plt.title(title)
+    plt.legend()
 
 
 #Classification Problems 

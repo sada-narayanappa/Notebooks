@@ -258,7 +258,7 @@ def colTypesDF(df):
 
 def getFileName(df,idx):
     c = df.columns[idx];
-    c=re.sub(r'[\s+?\']', '', c)
+    c=re.sub(r'[\s+?\']', '', str(c))
     prefix = hex(id(df)) + "-"+c;
     figName1 = "temp/"+ prefix + ".png";    
     
@@ -309,11 +309,14 @@ def getIcons(df,h):
     h1="<tr><td></td>";
     idx=0;
     for c in df.columns:
+        fig = None 
         try:
            fig = createIcon(df,idx);
         except:
            print ("Error while getting icon for ", c);
-        if ( fig):
+        if ( fig is None):
+            h1 = h1 + "<td></td>";
+        else:
             #fig = "/files/" + fig;
             h1 = h1 + "<td><a class='thumbnail' href='#thumb'><img src='" + fig;
             h1 = h1 + "' border=0 style='{margins: 0;}' width=64 height=64 ";
@@ -321,8 +324,6 @@ def getIcons(df,h):
 #            h1 = h1 +"onmouseover='this.width=500;' onmouseout='this.width=64' >" 
                         
             h1 = h1 + "</td>";  
-        else:
-            h1 = h1 + "<td></td>";
             
         idx=idx + 1;          
     h1 = h1 + "</tr>\n";
