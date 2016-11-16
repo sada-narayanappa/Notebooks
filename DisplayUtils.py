@@ -97,6 +97,11 @@ def graphFunction(formula, xmin, xmax, c=None, xlabel= None, ylabel=None, title=
 '''
 =======================================================================================
 Convenient class A to manage and display matrices
+
+# Example Usage
+a= A(('1 7 2 3. 5 5 6 6 7 8.' * 3 +";") * 4, "A")
+#a.a = a.a.T # create transpose
+a.l          # display latex version of the matrix
 =======================================================================================
 '''
 from IPython.display import display, Math, Latex
@@ -113,7 +118,7 @@ class A:
 
         if ( type(s) is str):
             self.a = A.setM(s)
-        elif ( type(s) is ndarray):
+        elif ( type(s) is np.ndarray):
             self.a = s
         elif ( type(s) is list ):
             self.a = np.array(s) #[None]
@@ -180,6 +185,7 @@ class A:
             display(Math(s))
         return s;
 
+    #Display thr matrix
     @staticmethod
     def display(*M):
         s = ""
@@ -187,7 +193,11 @@ class A:
             s+= A.M(m, call_display=False, showdim=False);
         display(Math(s))
 
+    def d(self):
+        self.display(self.a, self.name)
+        return self.a
 
+    # Returns Latex information
     @property
     def l(self):
         np.set_printoptions(precision=2, linewidth=180)
@@ -218,12 +228,6 @@ class A:
         return ret
 
 
-'''
-# Example Usage
-a= A(('1 7 2 3. 5 5 6 6 7 8.' * 3 +";") * 4, "A")
-#a.a = a.a.T # create transpose
-a.l          # display latex version of the matrix
-'''
 
 
 '''
