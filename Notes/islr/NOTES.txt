@@ -1,0 +1,4 @@
+Find the formula for E(X+Y) and Var(X+Y)
+for problem in chapter 5 and question 1
+http://www.milefoot.com/math/stat/rv-sums.htm
+

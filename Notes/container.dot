@@ -1,0 +1,7 @@
+digraph G {
+"Operating Cost";
+"Number Of Units";
+roi [shape=invtriangle];
+"Number Of Units" -> roi  [label=nunits];
+"Operating Cost" -> roi  [label=opcost];
+}
