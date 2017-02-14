@@ -7,7 +7,7 @@ nogit-old
 __pycache__
 PyUtils
 SCHASMap
-scratch/*
-Notes/ML-Udacity/*
-Notes/instructor-interviews*
+*scratch*
+*ML-Udacity*
+*instructor-interviews*
 Sites
