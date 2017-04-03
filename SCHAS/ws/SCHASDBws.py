@@ -18,7 +18,8 @@ SQL_TXT = "/opt/SCHAS/data/sql/SQL.txt";
 from DBUtils import  DBUtils
 from GenUtils import *
 
-db = DBUtils(conn='postgresql://postgres:postgres@localhost:5400/SCHASDB')
+#db = DBUtils(conn='postgresql://postgres:postgres@localhost:5400/SCHASDB')
+db = DBUtils(conn='postgresql://postgres:postgres@localhost:5432/SCHASDB')
 db.load(file=SQL_TXT);
 #--------------------------------------------------------------------------
 js = '''
@@ -50,7 +51,7 @@ def _getQueryHTML(q, limit=25, htmlname='dbtable', rType='html' ):
     
 #--------------------------------------------------------------------------
 def getQuery(parm=None):
-    req = {'q': "select 'NO QUERY' as HMMM;", 'type': 'html', 'max': 100, 'tname':'dbtable'}
+    req = {'q': "select 'NO QUERY' as HMMM;", 'type': 'html', 'max': '100', 'tname':'dbtable'}
     r = _get(request, parm, req)
 
     try:
