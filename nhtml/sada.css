@@ -1,0 +1,36 @@
+body{
+font-family: Roboto, sans-serif, "Myriad Set Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-family: "Myriad Set Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+letter-spacing: normal;
+line-height: 14px;
+display: block;
+width: 100%;
+color: #333;
+margin: 0px;
+padding: 0px;
+}
+
+.header {
+font-family: "Fakt Condensed Medium", HelveticaNeueMediumCondensed, HelveticaNeue-Medium-Condensed, "Helvetica Neue Medium Condensed", "Arial Narrow", TeXGyreHerosCnRegular, HelveticaNeueMedium, HelveticaNeue-Medium, "Helvetica Neue Medium", HelveticaNeue, "Helvetica Neue", Helvetica, Tahoma, Geneva, Arial, sans-serif ;
+float: left;
+font-size: 20px;
+font-stretch: condensed;
+line-height:  25px;
+padding-left: 22px; 
+padding-top: 15px;
+font-stretch: condensed;
+font-style: bold;
+font-weight: bold;
+}
+
+.tmenu{
+	font-family: Roboto, sans-serif, "Myriad Set Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+	color: #616161;
+	font-weight: 400;
+	text-transform: none;
+	text-decoration: none;
+	font-stretch: normal;
+	font-style: normal;
+	padding-right: 40px;
+}
