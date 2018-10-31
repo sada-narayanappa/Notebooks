@@ -13,7 +13,8 @@ import gc
 import json
 from Jupytils import Map
 from sklearn.linear_model import LinearRegression
-from numba import njit
+from numba import jit, autojit
+import _thread 
 
 def logd(debug = True, *args):
     if not debug: return
@@ -82,14 +83,60 @@ def predict(x, y, n,m,k, theta, t):
         print("Hmmm Passing an index i:{} resetting to {}".format(i,s))
         t=s
     if (x is None or len(x) < (m+k+1) ):
-        #p= list(reversed(y[t-n:t] * -1)) + [0] * (1+m)  + [1]
         p= list(reversed(y[t-n:t])) + [0] * (1+m)  + [1]
     else:
         p= list(reversed(y[t-n:t])) + list(reversed(x[t-m-k:t-k+1])) + [1]
 
-    yh = np.sum(np.array(p).dot(theta))
+#    yh = np.sum(np.array(p).dot(theta))
+    yh = np.array(p).dot(theta)
     rs = (y[t] - yh)
     return yh,rs
+    
+
+def predict1(x, y, n,m,k, theta, t):
+    s = max(n, (m+k))
+    if( t < s):
+        print("Hmmm Passing an index i:{} resetting to {}".format(t,s))
+        t=s
+    if (x is None or len(x) < (m+k+1) ):
+        p= list(reversed(y[t-n:t])) + [0] * (1+m)  + [1]
+    else:
+        p= list(reversed(y[t-n:t])) + list(reversed(x[t-m-k:t-k+1])) + [1]
+        
+    yh = np.dot(p, theta)
+    rs = (y[t] - yh)
+    return yh,rs
+
+def predict2(x, y, n,m,k, theta, t):
+    p1 = [1] * (n+m+1);
+    for i in range(n):
+        p1[n-1-i] = y[t-n+i]
+    for i in range(m+1):
+        p1[i+n] = x[t-k-i]
+    
+    yh = theta[-1]; 
+    for i in range(len(p1)):
+        yh += p1[i] * theta[i]
+    rs = (y[t] - yh)
+
+    #p = list(reversed(y[t-n:t])) + list(reversed(x[t-m-k:t-k+1])) #+ [1]
+    #print("=>", p1, p)
+    return yh,rs
+
+import numba
+from numba import uint32, float32, float64
+
+@jit(nopython=True, cache=True)
+def predict3(x, y, n,m,k, theta, t):
+    yh = theta[-1];
+    for i in range(n):
+        yh += y[t-n+i] * theta[n-1-i]
+    for i in range(m+1):
+        yh += x[t-k-i] * theta[i+n]
+    
+    rs = (y[t] - yh)
+    return yh ,rs
+
 
 # Compute the Fitness Score
 #
@@ -99,10 +146,9 @@ def FitnessScore(x, y, n,m,k,theta, needArrays=True):
     yhat=np.array(y.copy())
     residueFit=[]
     sumResidue = 0;
-
+    yyFit, rrFit =0.5,0.5;
     for t in range(s,len(y)):  # <= predict all possible candidates
-        yyFit,rrFit = predict(x, yhat, n,m,k, theta, t)
-            
+        yyFit,rrFit = predict3(x, yhat, n,m,k, theta, t)
         yhat[t] = yyFit
         sumResidue += rrFit ** 2
         
@@ -114,9 +160,9 @@ def FitnessScore(x, y, n,m,k,theta, needArrays=True):
 
 # Compute best fitness score and return the results
 #
-def findBest(y, x):
+def findBest(y, x, dfi):
     best=Map({});
-    x=x.reshape((len(x),1))
+    #x=x.reshape((len(x),1))
     fitscore, yh, rs = 0,0,0
     best.fitscore = -1;
     
@@ -168,7 +214,7 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
             y=df[v].values
             print(f"Finding Best of {i}/{len(df.columns)} {u} and {v} \r", end='')
             
-            ret = findBest(y, x);
+            ret = findBest(y, x, dfi1);
             theta = ",".join([str(c) for c in ret.res])
             corr = np.corrcoef(x,y)[0][1]
             
@@ -181,7 +227,7 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
         dfi1.to_csv(outFileName, index=False)
     
     return dfi1
-#
+
 GLOBAL_ARGS=defaultdict(int)
 def Usage():
     print('''Usage: sys.argv[0]} csvfile <output file> [from -f columnnumber] [to -t columnnumner]
@@ -207,7 +253,6 @@ def inJupyter():
         return False
 
 def main():
-    
     global GLOBAL_ARGS
     args = GLOBAL_ARGS['__ARGS__']
     if (len(args) < 2 ): 
@@ -218,7 +263,7 @@ def main():
     cFrom = int(GLOBAL_ARGS['-f']) if ('-f' in GLOBAL_ARGS) else 0
     cTo = int(GLOBAL_ARGS['-t']) if ('-t' in GLOBAL_ARGS) else 100000
     CreateInvariants( csvp, outp, cFrom, cTo)
-
+    
 if __name__ == '__main__':
     if (not inJupyter()):
         t1 = datetime.datetime.now()
