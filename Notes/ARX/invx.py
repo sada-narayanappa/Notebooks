@@ -1,3 +1,4 @@
+#from __future__ import print_function
 import logging as log
 import sys
 import os
@@ -15,6 +16,7 @@ from Jupytils import Map
 from sklearn.linear_model import LinearRegression
 from numba import jit, autojit
 import _thread 
+
 
 def logd(debug = True, *args):
     if not debug: return
@@ -80,7 +82,7 @@ def ARXModelLR(y, x, n,m,k, debug=False):
 def predict(x, y, n,m,k, theta, t):
     s = max(n, (m+k))
     if( t < s):
-        print("Hmmm Passing an index i:{} resetting to {}".format(i,s))
+        print("Hmmm Passing an index i:{} resetting to {}".format(t,s))
         t=s
     if (x is None or len(x) < (m+k+1) ):
         p= list(reversed(y[t-n:t])) + [0] * (1+m)  + [1]
