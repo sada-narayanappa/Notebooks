@@ -154,38 +154,42 @@ double StdDev(const Eigen::VectorXd& v) {
     double std1 = std::sqrt((v.array() - v.array().mean()).array().square().sum()/n);
     return std1;
 }
-
 void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx, 
                       const char *out=NULL, int from=1, int to=200000){    
-    
     Watch w;
     
     Best best;
     char temp[256];
     FILE *ofile = (out)? fopen(out, "w") : stdout;
-    
+
+    int ignore[xx.cols()];
+    for (int i = from; i < xx.cols(); i++) ignore[i] = 0;
+        
     if ( from ==1)
-        fprintf(ofile, "%s##File: %s %ld %ld %d %d OUT: %s\n",best.Head(),file,xx.rows(),xx.cols(),from, to, out);
+        fprintf(ofile, "%s##File: %s %ld %ld %d %d OUT: %s\n",best.Head(),
+                            file,xx.rows(),xx.cols(),from, to, out);
 
     int nvars = 0;
     for (int i = from; i < xx.cols(); i++) {
         if ( i > to )
             break;
-        char * u = df.header[i];
-        
         const Eigen::VectorXd& x = xx.col(i);
-        if ( StdDev(x) == 0){
-            //printf("===> U STDDEV ==0 enough unique values in Y: {%s}\n",u);
+        char * u = df.header[i];
+        if ( ignore[i] || StdDev(x) == 0){
+            ignore[i] = 1;
+            printf("===> U STDDEV ==0 enough unique values in Y: {%s}\r",u);
             continue;
         }
+        
         for (int j=1; j < xx.cols(); j++) {
-            char *v = df.header[j];
-            if (i == j )
+            if (i == j || ignore[j] )
                 continue;
             
             const Eigen::VectorXd& y = xx.col(j);   
             
+            char *v = df.header[j];
             if ( StdDev(y) == 0){
+                ignore[j] = 1;
                 printf("===> V STDDEV ==0 enough unique values in Y: {%s}\r",v);
                 continue;
             }
