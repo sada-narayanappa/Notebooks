@@ -82,7 +82,8 @@ double FitnessScore(const Eigen::VectorXd& x, const Eigen::VectorXd& y,
 
 //# Theta is the parameter vector with last index is the constant of ARX model
 //#
-double ComputeResid(const Eigen::VectorXd& y, const Eigen::VectorXd& x, Eigen::VectorXd& theta, int n, int m, int k){
+double ComputeResid(const Eigen::VectorXd& y, const Eigen::VectorXd& x, 
+                    Eigen::VectorXd& theta, int n, int m, int k){
     Eigen::MatrixXd r;
     int offset = Regressors(y, x, n,m,k, r);
     Eigen::VectorXd rs1 = (r * theta);
@@ -119,7 +120,8 @@ struct Best{
         }
         t[strlen(t)-2] = 0;
         //cols = 'uName,yName,fitness,correlation,theta,n,m,k,threshold'.split(',')
-        sprintf(buff,"%s,%s,%.9f,%.1f,%d,%d,%d,%.9f,[%s]\n", u,v,fitscore, corr, n, m, k, threshold,t);
+        sprintf(buff,"%16s,%16s, %.10f, %+.4f, %d,%d,%d,  %13.9f,  \"[%s]\"\n", 
+                            u,v,fitscore, corr, n, m, k, threshold,t);
         
         return buff;
     }
@@ -132,13 +134,11 @@ void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x, Best& best ) {
     int n,m,k, bestn, bestm, bestk;
     LinearRegression lr;
     
-    //theta, arx,theta1 = None, None, None
     for(n=0; n < 3; n++)
         for (m=0; m < 2; m++)
             for (k=0; k  < 3; k++) {                
                 ARXModelLR(y, x,n,m,k, lr);
                 double fitscore = FitnessScore(x,y,n,m,k, lr.theta);
-                //lr.Dump();
                 if ( fitscore > best.fitscore ) { 
                     best.theta = lr.theta; 
                     best.fitscore = fitscore; 
@@ -154,6 +154,26 @@ double StdDev(const Eigen::VectorXd& v) {
     double std1 = std::sqrt((v.array() - v.array().mean()).array().square().sum()/n);
     return std1;
 }
+
+double mcorr(const Eigen::VectorXd& x, const Eigen::VectorXd& y) { 
+    double sum_X = 0, sum_Y = 0, sum_XY = 0; 
+    double squareSum_X = 0, squareSum_Y = 0; 
+  
+    int n= x.rows();
+    for (int i = 0; i < x.rows(); i++) { 
+        sum_X       = sum_X + x[i]; 
+        sum_Y       = sum_Y + y[i]; 
+        sum_XY      = sum_XY + x[i] * y[i]; 
+        squareSum_X = squareSum_X + x[i] * x[i]; 
+        squareSum_Y = squareSum_Y + y[i] * y[i]; 
+    } 
+  
+    // use formula for calculating correlation coefficient. 
+    double d = sqrt((n * squareSum_X - sum_X * sum_X) * (n * squareSum_Y - sum_Y * sum_Y));
+    double corr = (n * sum_XY - sum_X * sum_Y) / d;
+    return corr; 
+} 
+
 void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx, 
                       const char *out=NULL, int from=1, int to=200000){    
     Watch w;
@@ -199,8 +219,8 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             const char * o = best.Dump();
             if (out) { fprintf(ofile, "%s", o);} 
             else printf("%s",o);
+            best.corr = mcorr(x,y);
             nvars++;
-            //best.corr = np.corrcoef(x,y)[0][1]
         }
     }
     (ofile !=stdout)? fclose(ofile) : NULL;
@@ -243,7 +263,7 @@ void SplitRun(int n, MParams& p) {
             MParams& l = *l1;
             l.from = i+1;
             l.to = MIN(i+each, p.xx.cols());
-            sprintf(l.out, "OUT-%05d-%05d.out",l.from, l.to);
+            sprintf(l.out, "OUT-%05d-%05d.csv",l.from, l.to);
             printf("%d Run from %d - %d (each: %d/%ld) out: %s\n",
                                    j, l.from, l.to, each, p.xx.cols(), l.out);
             int ret = pthread_create(&ids[j],NULL,&run, (void*)&l);
@@ -257,27 +277,6 @@ void SplitRun(int n, MParams& p) {
         pthread_join(ids[j], NULL);
     }
 }
-/*
-void test1(){
-    Eigen::MatrixXd m(3,3);
-    m << 1,2,3,
-       4,5,6,
-       7,8,9;
-    cout << "Here is the matrix m:" << endl << m << endl;
-    cout << "2nd Row: " << m.row(1) << endl;
-    m.col(2) += 3 * m.col(0);
-    cout << "After adding 3 times the first column into the third column, the matrix m is:\n";
-    cout << m << endl;
-    
-    const Eigen::VectorXd& v = m.col(1);
-    
-    Eigen::VectorXd *vv = (Eigen::VectorXd *) &v;
-        
-    (*vv)[1] = 890;
-    cout << "\n\n" << v << endl;    
-    cout << "\n\n" << m << endl;    
-}
-*/
 //-------------------------------------------------------------------------------
 int main(int argc, char const *argv[]){
     Watch w;
