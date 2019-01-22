@@ -23,4 +23,5 @@ flask-video-streaming
 OUT*
 OOO*
 *.o
+*.EXE
 a.out

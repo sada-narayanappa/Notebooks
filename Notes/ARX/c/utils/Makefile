@@ -6,7 +6,7 @@ CC = g++
 
 #SOURCES = datalink.c flow.c main.c tcpip.c tcp.c util.c sysdep.h tcpmig.h
 #CONFIG_HEADER = conf.h
-PROGRAMS = testml
+PROGRAMS = INVX.EXE
 
 DEFS = -DHAVE_CONFIG_H -I.
 INCLUDES =  -I".." `pkg-config --cflags eigen3`
@@ -47,4 +47,4 @@ model.o: model.c linreg.h
 LR.o: LR.c LR.h
 
 clean:
-	rm -f *.o $(PROGRAMS) core *.core 
+	rm -f *.o $(PROGRAMS) core *.core OUT*
