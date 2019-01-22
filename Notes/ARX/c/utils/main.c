@@ -174,7 +174,7 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
         char * u = df.header[i];
         
         const Eigen::VectorXd& x = xx.col(i);
-        if ( StdDev(xx.col(i)) == 0){
+        if ( StdDev(x) == 0){
             //printf("===> U STDDEV ==0 enough unique values in Y: {%s}\n",u);
             continue;
         }
@@ -185,7 +185,7 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             
             const Eigen::VectorXd& y = xx.col(j);   
             
-            if ( StdDev(xx.col(j)) == 0){
+            if ( StdDev(y) == 0){
                 printf("===> V STDDEV ==0 enough unique values in Y: {%s}\r",v);
                 continue;
             }
@@ -224,13 +224,10 @@ struct MParams {
 
 void* run(void *inp){
     MParams& p1 = *(MParams*)inp;
-    
     CreateInvariants(p1.file, p1.df, p1.xx, p1.out, p1.from, p1.to);
-    
     delete (MParams*)inp;
     return NULL;
 }
-
 void SplitRun(int n, MParams& p) {
     n = n <=0 ? 1:n;
     int        each = ceil(p.xx.cols()*1.0/n);
@@ -276,33 +273,9 @@ void test1(){
     cout << "\n\n" << v << endl;    
     cout << "\n\n" << m << endl;    
 }
-void test2(Eigen::MatrixXd& xx, int iters=100){
-    Watch w;
-    printf("%d %s \n", iters, w.Start());
-    LinearRegression lr;
-    Eigen::VectorXd x;
-    Eigen::VectorXd y;
-    
-    for (int i=0; i < iters; i++) {
-        x = xx.col(i % xx.cols());
-        if ( StdDev(x) == 0){
-            continue;
-        }
-            
-        for (int j=0; j < iters; j++) {
-            y = xx.col(j % xx.cols());   
-            
-            if ( StdDev(y) == 0){
-                //printf("===> V STDDEV ==0 enough unique values in Y: {%s}\n",v);
-            }
-        }
-    }
-    w.Stop("## Time to Complete: ");
-}
 */
 //-------------------------------------------------------------------------------
 int main(int argc, char const *argv[]){
-        
     Watch w;
     const char * file = (argc > 1) ? argv[1]: "../data/test1.csv";
     

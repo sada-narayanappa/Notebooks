@@ -115,7 +115,7 @@ void CSV::Dump(int numRows) {
     }
 }
 
-const char* CSV::Read(const char *filename, int nrows, int *columns){
+const char* CSV::Read(const char *filename, int nrows, int *columns, const char *ignore){
     fileName = strdup(filename);
     FILE *file;
     file = fopen(filename, "r");
@@ -132,7 +132,7 @@ const char* CSV::Read(const char *filename, int nrows, int *columns){
     int i = 0;
     while (fgets(line, LINESIZE, file) && (i < nrows || nrows < 0)){
         char * line1 = Trim(line);
-        if (strlen(line1) <= 0 ){
+        if (strlen(line1) <= 0 || strncmp(line, ignore, strlen(ignore)) == 0 ){
             continue;
         }
         int j = 0;

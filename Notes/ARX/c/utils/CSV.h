@@ -84,7 +84,7 @@ public:
         data = new marray<double>[nColumns];   //Allocate Array for data
     }
 
-    const char* Read(const char *filename, int nrows = -1, int *columns= NULL);
+    const char* Read(const char *filename, int nrows = -1, int *columns= NULL, const char *ignore="##");
 
 };
 
