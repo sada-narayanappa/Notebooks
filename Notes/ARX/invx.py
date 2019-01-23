@@ -75,7 +75,7 @@ def ARXModelLR(y, x, n,m,k, debug=False):
     #ret1 = ret.copy();
     #ret1[0:n] *= -1;
     #del xx
-    return ret, arx, None;
+    return ret, arx;
 
 
 #Theta is a parameter matrix [n-coeffs, m-coffients, constant]
@@ -162,7 +162,7 @@ def FitnessScore(x, y, n,m,k,theta, needArrays=True):
 
 # Compute best fitness score and return the results
 #
-def findBest(y, x, dfi):
+def findBest(y, x):
     best=Map({});
     #x=x.reshape((len(x),1))
     fitscore, yh, rs = 0,0,0
@@ -172,7 +172,7 @@ def findBest(y, x, dfi):
     for n in range(3):
         for m in range(2):
             for k in range(3):
-                theta, arx,theta1 = ARXModelLR(y, x,n,m,k)
+                theta, arx = ARXModelLR(y, x,n,m,k)
                 fitscore, yh, rs = FitnessScore(x,y,n,m,k, theta, False)
                     
                 #print(f'{(n,m,k)}, {theta}')
@@ -197,7 +197,7 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
 
     log.info(f"Creating invariants using {df.columns[1:]}" )
     
-    cols = 'uName,yName,fitness,correlation,theta,n,m,k,threshold'.split(',')
+    cols = 'uName,yName,fitness,correlation,n,m,k,threshold,theta'.split(',')
     dfi1 = pd.DataFrame(columns=cols);
     for i,u in enumerate(df.columns[columns_from:]):
         if ( i > columns_to):
@@ -216,11 +216,11 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
             y=df[v].values
             print(f"Finding Best of {i}/{len(df.columns)} {u} and {v} \r", end='')
             
-            ret = findBest(y, x, dfi1);
+            ret = findBest(y, x);
             theta = ",".join([str(c) for c in ret.res])
             corr = np.corrcoef(x,y)[0][1]
             
-            inv1 = [u,v,ret.fitscore, corr, theta, ret.n, ret.m, ret.k, ret.threshold]
+            inv1 = [u,v,ret.fitscore, corr, ret.n, ret.m, ret.k, ret.threshold, theta]
             log.debug(f"{inv1}" )
             dfi1.loc[len(dfi1)] = inv1
     
@@ -257,11 +257,15 @@ def inJupyter():
 def main():
     global GLOBAL_ARGS
     args = GLOBAL_ARGS['__ARGS__']
-    if (len(args) < 2 ): 
+    if (len(args) < 1 ): 
         Usage();
+        print("**ERROR: REQUIRED Input file and Output File *\n\n");
         return;
     csvp = args[0]
-    outp = args[1]
+    if ( len(args) < 2 ):
+        outp= args[0] +".inv.csv"
+    else:
+        outp = args[1]
     cFrom = int(GLOBAL_ARGS['-f']) if ('-f' in GLOBAL_ARGS) else 0
     cTo = int(GLOBAL_ARGS['-t']) if ('-t' in GLOBAL_ARGS) else 100000
     CreateInvariants( csvp, outp, cFrom, cTo)

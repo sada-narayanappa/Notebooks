@@ -13,7 +13,7 @@ INCLUDES =  -I".." `pkg-config --cflags eigen3`
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = -lpcap 
-OBJECTS =  main.o linreg.o CSV.o model.o LR.o
+OBJECTS =  main.o linreg.o CSV.o model.o LR.o invx.o
 DEPENDENCIES = 
 CFLAGS = -g -O2 -Wall -Wno-unused
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
@@ -45,6 +45,7 @@ linreg.o: linreg.c linreg.h
 CSV.o: CSV.c CSV.h
 model.o: model.c linreg.h
 LR.o: LR.c LR.h
+invx.o: invx.c invx.h
 
 clean:
 	rm -f *.o $(PROGRAMS) core *.core OUT*
