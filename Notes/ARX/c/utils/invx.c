@@ -245,7 +245,7 @@ int main_invx(int argc, char const *argv[]){
     //check input for number of threads
     int nThreads = (argc > 2) ? atoi(argv[2]): 16;
     //lets not create threads if it does not makes sense
-    nThreads = (df.nRows/nthreads) > 0 ? nThreads: 1;
+    nThreads = (df.nRows/nThreads) > 0 ? nThreads: 1;
     
     SplitRun(nThreads, p);    
     w.Stop("## Time to Complete: ");

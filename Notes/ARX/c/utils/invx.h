@@ -74,17 +74,17 @@ struct Best{
     }
 };
 
-int Regressors(CONSTEV y, const Eigen::VectorXd& x, int n, int m, int k, Eigen::MatrixXd& r);
-void ARXModelLR(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m, int k, LinearRegression& lr);
-double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
+int Regressors (CONSTEV y, CONSTEV x, int n, int m, int k, Eigen::MatrixXd& r);
+void ARXModelLR(CONSTEV y, CONSTEV x, int n, int m, int k, LinearRegression& lr);
+double predict3(CONSTEV x, CONSTEV y, 
                 int n, int m, int k,Eigen::VectorXd& theta, double t, double& yh, double& rs);
-double FitnessScore(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
+double FitnessScore(CONSTEV x, CONSTEV y, 
                   int n, int m, int k, Eigen::VectorXd& theta);
-double ComputeResid(const Eigen::VectorXd& y, const Eigen::VectorXd& x, 
+double ComputeResid(CONSTEV y, CONSTEV x, 
                     Eigen::VectorXd& theta, int n, int m, int k);
-double StdDev(const Eigen::VectorXd& v);
-void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x, Best& best );
-double mcorr(const Eigen::VectorXd& x, const Eigen::VectorXd& y);
+double StdDev(CONSTEV v);
+void findBest(CONSTEV y, CONSTEV x, Best& best );
+double mcorr(CONSTEV x, CONSTEV y);
 void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx, 
                       const char *out=NULL, int from=1, int to=200000);
 
