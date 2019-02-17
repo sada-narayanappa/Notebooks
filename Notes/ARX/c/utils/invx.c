@@ -163,7 +163,7 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
         char * u = df.header[i];
         if ( ignore[i] || StdDev(x) == 0){
             ignore[i] = 1;
-            printf("===> U STDDEV ==0 enough unique values in Y: {%s}\r",u);
+            printf("===> U STDDEV ==0 NO unique values in Y: {%s}\r",u);
             continue;
         }
         
@@ -176,7 +176,7 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             char *v = df.header[j];
             if ( StdDev(y) == 0){
                 ignore[j] = 1;
-                printf("===> V STDDEV ==0 enough unique values in Y: {%s}\r",v);
+                printf("===> V STDDEV ==0 NO unique values in Y: {%s}\r",v);
                 continue;
             }
             best.u = u;

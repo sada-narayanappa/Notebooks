@@ -226,6 +226,7 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
     
     dfi1.sort_values(['uName', 'yName'], inplace=True)
     if ( outFileName is not None):
+        print(f"Writing to file: {outFileName} : {len(dfi1)} Rows")
         dfi1.to_csv(outFileName, index=False)
     
     return dfi1

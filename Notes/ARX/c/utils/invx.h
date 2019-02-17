@@ -62,12 +62,12 @@ struct Best{
         char t1[64];
         t[0] = 0;
         for (int i=0; i < theta.rows(); i++) {
-            sprintf(t1,"%.10f,", theta[i]);
+            sprintf(t1,"%.16f,", theta[i]);
             strcat(t, t1);
         }
         t[strlen(t)-2] = 0;
         //cols = 'uName,yName,fitness,correlation,theta,n,m,k,threshold'.split(',')
-        sprintf(buff,"%16s,%16s, %.10f, %+.4f, %d,%d,%d,  %13.9f,  \"[%s]\"\n", 
+        sprintf(buff,"%16s,%16s, %.16f, %+.4f, %d,%d,%d,  %13.16f,  \"[%s]\"\n", 
                             u,v,fitscore, corr, n, m, k, threshold,t);
         
         return buff;

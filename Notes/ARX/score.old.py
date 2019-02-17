@@ -10,8 +10,6 @@ from collections import defaultdict
 from Jupytils.DataFrameUtils import LoadDataSet
 from Jupytils.jcommon import Map
 import math
-import cmp
-from numba import jit, autojit
 
 #GLOBALS 
 G_sargs = defaultdict(str);
@@ -19,9 +17,6 @@ G_sargs = defaultdict(str);
 def Usage(msg=''):
     print(msg)
     print(''' Usage:
-    Ex: python score.py -i data/test.inv.xml -a data/test.csv 
-    
-    
 score.py -i <invariant.xml> -o <anomaly-file> [-p <prefix for output files>]
         [-s <starttime date or index>] [-e <endtime date or index>]
         
@@ -35,35 +30,30 @@ Anomaly file must have a first column is the index
 ''')
 
 def deleteFile(f):
-    try:    os.remove(f) 
-    except: pass;
+    try:
+        os.remove(f) 
+    except:
+        pass;
     
-def predict1(x, y, n,m,k, theta, t):
+def predict1(x, y, n,m,k, theta, t, log=False):
     yh=0 
     for i in range(n):
         py = y[t-i-1]
         yh += py * theta[i] * -1.0
+#        if ( log): print("yh = {} * {} * {}".format(y[t-i-1] , theta[i] , -1.0), end='')
             
     for i in range(m+1):
         px = x[t-m-k+i]
         yh += px * theta[n+m-i]
+#        if ( log): print(" + {} * {} ".format(x[t-m-k+i] , theta[n+m-i]), end='')
+
+#    if ( log):  print(" + {} ".format(theta[-1]))
 
     yh += theta[-1]
     return yh, y[t] - yh
-
-@jit(nopython=True, cache=True)
-def predict3(x, y, n,m,k, theta, t):
-    yh = theta[-1];
-    for i in range(n):
-        yh += y[t-n+i] * theta[n-1-i]
-    for i in range(m+1):
-        yh += x[t-k-i] * theta[i+n]
     
-    rs = (y[t] - yh)
-    return yh ,rs
-
 # t = at time
-def DetectAnomaly0(t, invDF, anomDF, sumFitness, edgeCounts, logdetailed=True, ret=Map({}) ):
+def DetectAnomaly(t, invDF, anomDF, sumFitness, edgeCounts, logdetailed=True, ret=Map({}) ):
     if (not ret): 
         ret = Map({});
         ret.brkns = Map({});
@@ -76,6 +66,9 @@ def DetectAnomaly0(t, invDF, anomDF, sumFitness, edgeCounts, logdetailed=True, r
     ret.scores = []
     ret.sumFitness = sumFitness; #sum(invDF.fitness.astype(float));
 
+#    for i in range(len(invDF)):
+#        r = invDF.ix[i]
+        
     for i, r in invDF.iterrows():
         brkn= Map({})
         brkn.brknFitSum =0;
@@ -103,6 +96,7 @@ def DetectAnomaly0(t, invDF, anomDF, sumFitness, edgeCounts, logdetailed=True, r
             ret.brkSignif += brkn.sigf
 
     ret.normedScore = ret.anomScore/ret.sumFitness
+    
     ret.suspicions, ret.suspicionsCounts = suspicions(ret, edgeCounts, logdetailed);
     
     if ( logdetailed ):
@@ -110,7 +104,7 @@ def DetectAnomaly0(t, invDF, anomDF, sumFitness, edgeCounts, logdetailed=True, r
                                  t, ret.anomScore, ret.normedScore, ret.brokenInvs) )
     return ret;
 
-def DetectAnomaly(t, invDFA,invDFC,anomDFA,anomDFC, sumFitness, edgeCounts, logd=True,ret=None):
+def DetectAnomaly(t, invDFA,invDFC,anomDFA,anomDFC, sumFitness, edgeCounts, logd=True,ret=None, maxLag=5 ):
     if (not ret): 
         ret = Map({});
         ret.brkns = Map({});
@@ -142,7 +136,7 @@ def DetectAnomaly(t, invDFA,invDFC,anomDFA,anomDFC, sumFitness, edgeCounts, logd
         brkn['uName'] = uName; brkn['yName'] = yName; #brkn.nmk = (r.n, r.m, r.k)
         ret.brkns[uName+":"+ yName] = brkn
         
-        brkn.yh, brkn.res = predict3(u, y, n,m,k, theta1, t)
+        brkn.yh, brkn.res = predict1(u, y, n,m,k, theta1, t, False)
         
         if (threshold):
             brkn.sigf  = abs(brkn.res)/threshold
@@ -161,6 +155,7 @@ def DetectAnomaly(t, invDFA,invDFC,anomDFA,anomDFC, sumFitness, edgeCounts, logd
             ret.brkSignif += brkn.sigf
 
     ret.normedScore = ret.anomScore/ret.sumFitness
+    
     ret.suspicions, ret.suspicionsCounts = suspicions(ret, edgeCounts, logd);
     
     if ( logd ):
@@ -203,6 +198,7 @@ def formatBrokenInvs(ret, t, fdOut=None, header=False):
         fdOut.write(vs); fdOut.write("\n");
 
     return vs;
+
 
 def formatRankScores(nodes, ret, t, edgeCounts=None, fdOut=None, header=False, ):
     sks = ret.suspicions;
@@ -266,7 +262,8 @@ def FindResiduals(invDF, anomDF, start=None,stop=None, log=False, filePrefix="Re
         dt=0;
 #       try:
         d1 = datetime.datetime.now()
-        r=DetectAnomaly(t, invDFA, invDFC, anomDFA, anomDFC, sumFit, edgeCounts, log, r, )
+        r=DetectAnomaly(t, invDFA, invDFC, anomDFA, anomDFC, sumFit, \
+                        edgeCounts, log, r, maxLag=maxLag)
         d2 = datetime.datetime.now()
         dt = d2- d1;
 #        except:
@@ -294,6 +291,10 @@ def FindResiduals(invDF, anomDF, start=None,stop=None, log=False, filePrefix="Re
     return edgeCounts;
     
 #--------------------------------------------------------------------------
+def thetaF(ret):
+    t = [ float(i.strip()) for i in  ret['theta'].split(',') if i.strip()]
+    return t
+
 def process():
     global G_sargs
     startTime = G_sargs['-s']
@@ -311,8 +312,19 @@ def process():
         print("Invariant file '{}' does not exist: ".format(invFile));
         return
     
-    anomDF = pd.read_csv(anomFile)
-    invDF  = cmp.LoadInvFile(invFile)
+    anomDF = LoadDataSet(anomFile)
+    
+    # Load Invariant File and prepare columns
+    invDF=LoadDataSet(invFile, xmlTag="Invariant")
+    invDF = invDF.infer_objects()
+    invDF = invDF['uName yName fitness n m k threshold theta'.split()]
+    invDF.fitness  = invDF.fitness.astype(float)
+    invDF.threshold= invDF.threshold.astype(float)
+    invDF.n = invDF.n.astype(int)
+    invDF.m = invDF.m.astype(int)
+    invDF.k = invDF.k.astype(int)
+    invDF['theta1']= invDF.apply (lambda row: thetaF(row),axis=1)  # Convert to float array
+    
     print("Creating Score Files ... FilePrefix: ",  filePrefix)
     
     FindResiduals(invDF, anomDF, filePrefix= filePrefix); # Lets ignore start and stop for now
