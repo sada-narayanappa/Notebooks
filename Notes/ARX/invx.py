@@ -1,3 +1,5 @@
+#!/usr/local/bin/python 
+
 #from __future__ import print_function
 import logging as log
 import sys
@@ -9,13 +11,13 @@ import getopt
 from collections import defaultdict
 import math
 import re;
-import collections
 import gc
 import json
 from Jupytils import Map
 from sklearn.linear_model import LinearRegression
 from numba import jit, autojit
 import _thread 
+import threading 
 
 
 def logd(debug = True, *args):
@@ -147,31 +149,77 @@ def FitnessScore(x, y, n,m,k,theta, needArrays=True):
     denom = np.sum((y[s:]- np.mean(y[s:]))**2)
     yhat=np.array(y.copy())
     residueFit=[]
-    sumResidue = 0;
+    sumResidue = 0.0;
     yyFit, rrFit =0.5,0.5;
     for t in range(s,len(y)):  # <= predict all possible candidates
         yyFit,rrFit = predict3(x, yhat, n,m,k, theta, t)
         yhat[t] = yyFit
-        sumResidue += rrFit ** 2
-        
         if (needArrays):
             residueFit.append(rrFit)
+        if (sumResidue > 1e400 or math.isinf(sumResidue)):
+            #print("***** LARGE:?", sumResidue)
+            continue; #Already quite huge - no need to count them
+        try:
+            sumResidue += rrFit ** 2
+        except:
+            pass
+            #print("***** LARGE:?", sumResidue)
+            
    
     fitness = 1- np.sqrt(sumResidue/denom)
     return fitness, yhat,residueFit;
+    
+def CheckARModel(u, y, arMAP={}, ARModelThreshold = 0.7):
+    if (u in arMAP):
+        return arMAP[u]
+    
+    best=Map({});
+    if (len(np.unique( y)) <= 1):
+        arMAP[u] = best
+        best.arModel = 1; best.n = 1;
+        #print(u, 3, 0, 0)
+        return arMAP
+    
+    for n in range(1,4):
+        theta, arx = ARXModelLR(y, y,n,-1,0)
+        fitscore, yh, rs = FitnessScore(y,y,n,-1,0, theta, False)
+        #print(u, n, fitscore, theta)
+                    
+        if (best.res is None or fitscore > best.fitscore ): 
+            best.res = theta; best.rs=rs; best.nmk= (n,0,0); best.fitscore = fitscore; 
+            best.n=n; best.m=-1; best.k=0; best.arModel = 0;
+            
+    rs1=ComputeResid(y, y, best.res, best.n, best.m, best.k)
+    if ((fitscore) > ARModelThreshold):
+        arMAP[u] = best
+        best.arModel = 1;
+        
+    return arMAP
 
-# Compute best fitness score and return the results
-#
-def findBest(y, x):
+def CheckARModels(df):
+    arMAP={}
+    for c in df.columns[1:]:
+        #print("CHECK AR:", c)
+        CheckARModel(c, df[c].values, arMAP)
+        #print(arMAP)
+    
+    return arMAP
+
+def findBest(y, x, uName, arMAP={}):
     best=Map({});
     #x=x.reshape((len(x),1))
     fitscore, yh, rs = 0,0,0
     best.fitscore = -1;
     
     theta, arx,theta1 = None, None, None
-    for n in range(3):
+    nMAX = arMAP[uName].n if uName in arMAP else 0
+    nMAX = 1 if uName in arMAP else 3
+    
+    #print(nMAX , f"uName: {uName} {arMAP}<======")
+    for n in range(nMAX):
         for m in range(2):
             for k in range(3):
+                #print(f"***** {n} {m} {k} trying")
                 theta, arx = ARXModelLR(y, x,n,m,k)
                 fitscore, yh, rs = FitnessScore(x,y,n,m,k, theta, False)
                     
@@ -183,20 +231,14 @@ def findBest(y, x):
     rs1=ComputeResid(y, x, best.res, best.n, best.m, best.k)
     yh1=y[-len(rs1):]-rs1
     best.threshold=max(abs(yh1)) * 1.05
+    #print("***BEST ",  best)
         
     return best;
 
 #This will create a Invariant file. Note the CSV file has the following format
 # Time, A, B, C, D => first columns in time and time series for subsequent columns
 #
-def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
-    df=pd.read_csv(file)
-    if ( len(df) <= 2 or len(df.columns) <= 1):
-        log.info(f"Not enough data in {file} ... ending")
-        raise Exception(f"Not enough data in the dataframe {file}")
-
-    log.info(f"Creating invariants using {df.columns[1:]}" )
-    
+def _CreateInvariants(df,  outFileName=None, columns_from=0, columns_to=100000, arMAP=None):    
     cols = 'uName,yName,fitness,correlation,n,m,k,threshold,theta'.split(',')
     dfi1 = pd.DataFrame(columns=cols);
     for i,u in enumerate(df.columns[columns_from:]):
@@ -216,7 +258,7 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
             y=df[v].values
             print(f"Finding Best of {i}/{len(df.columns)} {u} and {v} \r", end='')
             
-            ret = findBest(y, x);
+            ret = findBest(y, x, uName=v, arMAP=arMAP);
             theta = ",".join([str(c) for c in ret.res])
             corr = np.corrcoef(x,y)[0][1]
             
@@ -231,12 +273,43 @@ def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000):
     
     return dfi1
 
+def CreateInvariants(file, outFileName=None, columns_from=0, columns_to=100000, nThreads=1):
+    df=pd.read_csv(file)
+    if ( len(df) <= 2 or len(df.columns) <= 1):
+        log.info(f"Not enough data in {file} ... ending")
+        raise Exception(f"Not enough data in the dataframe {file}")
+    log.info(f"Creating invariants using {df.columns[1:]}" )
+
+    arMAP = CheckARModels(df);
+        
+    if (nThreads<=1):
+        _CreateInvariants(df, outFileName, columns_from, columns_to, arMAP)
+        return
+     
+    #Run threads
+    each = int(len(df.columns)*1.0/nThreads);
+
+    i=0;
+    thrs=[]
+    while( i < len(df.columns)-1 ):
+        frm = i+1;
+        to = min(i+each, len(df.columns));
+        nf= f"OUT-{frm:05d}-{to:05d}.csv"
+        print(f"Run from {frm} - {to} (each: {each}) out: {nf}")
+        #int ret = pthread_create(&ids[j],NULL,&runINVX, (void*)&l);
+        i += each
+        t1 = threading.Thread(target=_CreateInvariants, args=(df, nf, frm, to, arMAP)) 
+        thrs.append(t1)
+        t1.start() 
+    for t in thrs:
+        t.join() 
+
 GLOBAL_ARGS=defaultdict(int)
 def Usage():
     print('''Usage: sys.argv[0]} csvfile <output file> [from -f columnnumber] [to -t columnnumner]
           Ex: sys.argv[0]}  -f 0 -t 10 test.csv test.inv.0.csv
           ''')
-def getargs(opts="hf:t:"): 
+def getargs(opts="hf:t:n:"): 
     try:
         opts, args = getopt.getopt(sys.argv[1:],opts)
     except getopt.GetoptError:
@@ -264,12 +337,13 @@ def main():
         return;
     csvp = args[0]
     if ( len(args) < 2 ):
-        outp= args[0] +".inv.csv"
+        outp= args[0] +".model.py.csv"
     else:
         outp = args[1]
     cFrom = int(GLOBAL_ARGS['-f']) if ('-f' in GLOBAL_ARGS) else 0
     cTo = int(GLOBAL_ARGS['-t']) if ('-t' in GLOBAL_ARGS) else 100000
-    CreateInvariants( csvp, outp, cFrom, cTo)
+    nThreads = int(GLOBAL_ARGS['-n']) if ('-n' in GLOBAL_ARGS) else 1
+    CreateInvariants( csvp, outp, cFrom, cTo, nThreads)
     
 if __name__ == '__main__':
     if (not inJupyter()):
@@ -278,6 +352,13 @@ if __name__ == '__main__':
         main()
         t2 = datetime.datetime.now()
         print(f"All Done in {str(t2-t1)} ***")
-
-
         
+        test=0
+        if (test):
+            file="data/test.csv"
+            ofile="data/test.1.csv"
+
+            t1 = datetime.datetime.now()
+            CreateInvariants(file, ofile, nThreads=1)
+            t2 = datetime.datetime.now()
+            print(f"All Done in {str(t2-t1)} ***")

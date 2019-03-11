@@ -23,7 +23,7 @@ struct MParams {
     const char      *file;
     int              from;
     int              to;
-    char             out[1024];
+    char             out[2*1024];
     const CSV        &df;
     Eigen::MatrixXd  &xx;
     MParams(const MParams& c):  df(c.df), xx(c.xx) {
@@ -56,7 +56,7 @@ struct Best{
         const char* head ="uName,yName,fitness,correlation,n,m,k,threshold,theta\n";
         return head;
     }
-    const char* Dump() {
+    const char* Dump1() {
         //printf("BEST=>(%s) Fitness: %.4f (n,m,k): %d %d %d %.5f ", str, fitscore, n,m,k,threshold);
         char t[1024];
         char t1[64];
@@ -68,6 +68,21 @@ struct Best{
         t[strlen(t)-2] = 0;
         //cols = 'uName,yName,fitness,correlation,theta,n,m,k,threshold'.split(',')
         sprintf(buff,"%16s,%16s, %.16f, %+.4f, %d,%d,%d,  %13.16f,  \"[%s]\"\n", 
+                            u,v,fitscore, corr, n, m, k, threshold,t);
+        
+        return buff;
+    }
+    const char* Dump() {
+        char t[1024];
+        char t1[64];
+        t[0] = 0;
+        for (int i=0; i < theta.rows(); i++) {
+            sprintf(t1,"%.16f,", theta[i]);
+            strcat(t, t1);
+        }
+        t[strlen(t)-2] = 0;
+        //cols = 'uName,yName,fitness,correlation,theta,n,m,k,threshold'.split(',')
+        sprintf(buff,"%16s,%16s, %.16f, %+.4f, %d,%d,%d,  %13.16f,\"%s\"\n", 
                             u,v,fitscore, corr, n, m, k, threshold,t);
         
         return buff;

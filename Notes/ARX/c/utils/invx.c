@@ -14,6 +14,48 @@
 #include <unistd.h> 
 #include <pthread.h> 
 
+//---------------------------------------------------------------------------------
+struct ARMap{
+    int isAR;
+    int bestN;
+    const char * u;
+    float fit;
+    ARMap():isAR(0), bestN(1), u(NULL), fit(0){}
+};
+ARMap *aRMap;
+float ARModelThreshold = 0.7;
+
+void CheckARModel(const CSV& df , const Eigen::MatrixXd& xx){
+    double fitscore = 0., yh, rs; 
+    LinearRegression lr;
+    aRMap = new ARMap[ df.nColumns];
+    
+    for (int i=1; i < df.nColumns; i++ ) {
+        const Eigen::VectorXd& x = xx.col(i);
+        aRMap[i].u = df.header[i];
+        if ( StdDev(x) == 0) {
+            aRMap[i].isAR = 1; 
+            continue;
+        }
+        for(int n=1; n < 4; n++) {
+            ARXModelLR(x, x,n,-1,0, lr);
+            double fitscore = FitnessScore(x,x,n,-1,0, lr.theta);
+            //printf("*** %d %s %f \n", n, aRMap[i].u, fitscore);
+            if ( fitscore > ARModelThreshold && fitscore > aRMap[i].fit ) { 
+                aRMap[i].isAR = 1;
+                aRMap[i].bestN = n;
+                aRMap[i].fit = fitscore;
+            }
+        }
+    }
+    /*
+    for (int i=0; i < df.nColumns; i++ ) {
+        if(aRMap[i].isAR){
+            printf("==>*** %s %d \n", aRMap[i].u, aRMap[i].bestN);
+        }
+    }*/
+}
+//---------------------------------------------------------------------------------
 int Regressors(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m, int k, Eigen::MatrixXd& r){
     int offset = MAX(n, m + k);
     int llen  = y.rows() - offset;
@@ -93,14 +135,17 @@ double ComputeResid(const Eigen::VectorXd& y, const Eigen::VectorXd& x,
 }
 
 
-void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x, Best& best ) {
+void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x, 
+              Best& best, int indexOfyColumn, const char* uName ) {
     double fitscore, yh, rs; fitscore =  yh = rs = 0;
     
     best.fitscore = -1;    
     int n,m,k, bestn, bestm, bestk;
     LinearRegression lr;
     
-    for(n=0; n < 3; n++)
+    int nMAX = aRMap[indexOfyColumn].isAR ? 1:3;
+        
+    for(n=0; n < nMAX; n++)
         for (m=0; m < 2; m++)
             for (k=0; k  < 3; k++) {                
                 ARXModelLR(y, x,n,m,k, lr);
@@ -149,11 +194,12 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
     FILE *ofile = (out)? fopen(out, "w") : stdout;
 
     int ignore[xx.cols()];
-    for (int i = from; i < xx.cols(); i++) ignore[i] = 0;
+    for (int i = 0; i < xx.cols(); i++) ignore[i] = 0;
         
     if ( from ==1)
-        fprintf(ofile, "%s##File: %s %ld %ld %d %d OUT: %s\n",best.Head(),
-                            file,xx.rows(),xx.cols(),from, to, out);
+        fprintf(ofile, "%s",best.Head());
+        //fprintf(ofile, "#File: %s %ld %ld %d %d OUT: %s\n",
+        //                    file,xx.rows(),xx.cols(),from, to, out);
 
     int nvars = 0;
     for (int i = from; i < xx.cols(); i++) {
@@ -161,9 +207,12 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             break;
         const Eigen::VectorXd& x = xx.col(i);
         char * u = df.header[i];
-        if ( ignore[i] || StdDev(x) == 0){
+        double sx = StdDev(x);
+        double eps= 1e-12;
+        printf("===> Doing {%s} %f %d\n",u, sx, sx < eps );
+        if ( ignore[i] || sx < eps){
             ignore[i] = 1;
-            printf("===> U STDDEV ==0 NO unique values in Y: {%s}\r",u);
+            printf("===> U STDDEV ==0 NO unique values in Y: {%s}\n",u);
             continue;
         }
         
@@ -171,17 +220,17 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             if (i == j || ignore[j] )
                 continue;
             
-            const Eigen::VectorXd& y = xx.col(j);   
-            
             char *v = df.header[j];
-            if ( StdDev(y) == 0){
+            const Eigen::VectorXd& y = xx.col(j);   
+            if ( StdDev(y) < eps || ignore[j]){
                 ignore[j] = 1;
-                printf("===> V STDDEV ==0 NO unique values in Y: {%s}\r",v);
+                printf("===> V STDDEV ==0 NO unique values in Y: {%s}\n",v);
                 continue;
             }
+            
             best.u = u;
             best.v = v;
-            findBest(y, x, best);
+            findBest(y, x, best, j, v);
             const char * o = best.Dump();
             if (out) { fprintf(ofile, "%s", o);} 
             else printf("%s",o);
@@ -198,18 +247,36 @@ void* runINVX(void *inp){
     delete (MParams*)inp;
     return NULL;
 }
+void append(FILE *head, const char* tailFile) {
+    FILE *tail = fopen(tailFile, "rb");
+
+    char buf[BUFSIZ];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof buf, tail)) > 0)
+        if (fwrite(buf, 1, n, head) != n)
+            abort();
+    if (ferror(tail))
+        abort();
+    fclose(tail);
+}
+//---------------------------------------------------------------------------------
+// From column - start at 0
 void SplitRun(int n, MParams& p) {
     n = n <=0 ? 1:n;
-    int        each = ceil(p.xx.cols()*1.0/n);
+    int each = ceil(p.xx.cols()*1.0/n);
     pthread_t  ids[n+1];
     int  j = 0;
     
-    for (int i=0; i < p.xx.cols()-1; i +=each,j++ ) {
+    CheckARModel(p.df, p.xx);
+        
+    int to = MIN(p.xx.cols(), p.to);
+    
+    for (int i=p.from; i < to-1; i +=each,j++ ) {
         MParams *l1 = new MParams(p);
         MParams& l = *l1;
         l.from = i+1;
         l.to = MIN(i+each, p.xx.cols());
-        sprintf(l.out, "OUT-%05d-%05d.csv",l.from, l.to);
+        sprintf(l.out, "%s-OUT-%05d-%05d.csv", l.file,l.from, l.to);
         printf("%d Run from %d - %d (each: %d/%ld) out: %s\n",
                                j, l.from, l.to, each, p.xx.cols(), l.out);
         int ret = pthread_create(&ids[j],NULL,&runINVX, (void*)&l);
@@ -221,11 +288,39 @@ void SplitRun(int n, MParams& p) {
     for (--j; j >=0; j--){
         pthread_join(ids[j], NULL);
     }
+    
+    // COMBINE All files ....
+    char  invFile[2*1024];
+    sprintf(invFile, "%s.model.csv", p.file);
+    printf("\n**Combining all files** into %s\n", invFile);
+    
+    FILE *file;
+    file = fopen(invFile, "wb");
+    if (file == NULL)  {
+        printf("Cannot combine Files into %s", invFile);
+        return ;
+    }
+
+    for (int i=0; i < p.xx.cols()-1; i +=each,j++ ) {
+        int from = i+1;
+        int to = MIN(i+each, p.xx.cols());
+        char  tmpFile[2*1024];
+        sprintf(tmpFile, "%s-OUT-%05d-%05d.csv", p.file, from, to);
+        append(file, tmpFile);
+        remove(tmpFile);
+    }    
+    fclose(file);
 }
+
 //-------------------------------------------------------------------------------
 int main_invx(int argc, char const *argv[]){
     Watch w;
     const char * file = (argc > 1) ? argv[1]: "../data/test1.csv";
+    //check input for number of threads
+    int nThreads = (argc > 2) ? atoi(argv[2]): 16;
+    
+    int from = (argc > 3) ? atoi(argv[3]): 0;
+    int upto = (argc > 4) ? atoi(argv[4]): 1024 * 200;
     
     int ret;
     CSV df(file);
@@ -238,14 +333,12 @@ int main_invx(int argc, char const *argv[]){
 
     printf("## %ld metrics pair-wise compared\n", xx.cols());
     
-    MParams p(file, 1, 200000, df,xx);
+    MParams p(file, from, upto, df,xx);
     printf("##File: %s %ld %ld %d %d: %s\n",file,
            p.xx.rows(),p.xx.cols(),p.df.nRows,p.df.nColumns,w.Start());
 
-    //check input for number of threads
-    int nThreads = (argc > 2) ? atoi(argv[2]): 16;
     //lets not create threads if it does not makes sense
-    nThreads = (df.nRows/nThreads) > 0 ? nThreads: 1;
+    nThreads = (df.nColumns/nThreads) > 1 ? nThreads: 1;
     
     SplitRun(nThreads, p);    
     w.Stop("## Time to Complete: ");
