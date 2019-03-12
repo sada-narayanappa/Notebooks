@@ -48,15 +48,15 @@ void CheckARModel(const CSV& df , const Eigen::MatrixXd& xx){
             }
         }
     }
-    /*
+    printf("AR Models: ");
     for (int i=0; i < df.nColumns; i++ ) {
         if(aRMap[i].isAR){
-            printf("==>*** %s %d \n", aRMap[i].u, aRMap[i].bestN);
+            printf("%s:%d; ", aRMap[i].u, aRMap[i].bestN);
         }
-    }*/
+    }
 }
 //---------------------------------------------------------------------------------
-int Regressors(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m, int k, Eigen::MatrixXd& r){
+int Regressors(const Eigen::VectorXd& y,const Eigen::VectorXd& x,int n,int m,int k,Eigen::MatrixXd& r){
     int offset = MAX(n, m + k);
     int llen  = y.rows() - offset;
     int ncols = n + m +1;
@@ -88,8 +88,8 @@ void ARXModelLR(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m
 }
 
 double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
-                int n, int m, int k,Eigen::VectorXd& theta, double t, double& yh, double& rs) {
-    yh = theta[theta.rows()-1];
+                int n, int m, int k,Eigen::VectorXd& theta, double t, double& rs) {
+    double yh = theta[theta.rows()-1];
     for(int i=0; i <n; i++){
         yh += y[t-n+i] * theta[n-1-i];
     }
@@ -110,11 +110,10 @@ double FitnessScore(const Eigen::VectorXd& x, const Eigen::VectorXd& y,
     
     Eigen::VectorXd yhat= y;
     double sumResidue = 0;
-    double yyFit, rrFit;
+    double rrFit;
     
     for (int t=s; t < y.rows(); t++) { //  # <= predict all possible candidates
-        predict3(x, yhat, n,m,k, theta, t, yyFit,rrFit);
-        yhat[t] = yyFit;
+        yhat[t] = predict3(x, yhat, n,m,k, theta, t,rrFit);
         sumResidue += rrFit*rrFit;
     }
     double fitness = 1 - sqrt(sumResidue/denom);
@@ -185,6 +184,19 @@ double mcorr(const Eigen::VectorXd& x, const Eigen::VectorXd& y) {
     return corr; 
 } 
 
+double eps= 1e-13;
+
+int allUnique(const Eigen::VectorXd& x){
+    for (int i = 1; i < x.rows(); i++) {
+        double d = abs(x[i-1] - x[i]);
+        if (x[i-1] != x[i] && d > eps) {
+            //printf("%f <=> %f  d:%E  %d ", x[i-1], x[i], d, (int)(d<eps) );
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx, 
                       const char *out, int from, int to){    
     Watch w;
@@ -205,16 +217,19 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
     for (int i = from; i < xx.cols(); i++) {
         if ( i > to )
             break;
-        const Eigen::VectorXd& x = xx.col(i);
         char * u = df.header[i];
-        double sx = StdDev(x);
-        double eps= 1e-12;
-        printf("===> Doing {%s} %f %d\n",u, sx, sx < eps );
-        if ( ignore[i] || sx < eps){
-            ignore[i] = 1;
-            printf("===> U STDDEV ==0 NO unique values in Y: {%s}\n",u);
+        if ( ignore[i] ){
+            printf("===> U STDDEV ==0 NO unique values in Y: {%s}\r",u);
             continue;
         }
+        const Eigen::VectorXd& x = xx.col(i);
+        double sx = StdDev(x);
+        if ( allUnique(x) || sx < eps ){
+            ignore[i] = 1;
+            printf("===> U STDDEV ==0 NO unique values in Y: {%s}\r",u);
+            continue;
+        }
+        //printf("===> Doing {%s} %f %d\n",u, sx, sx < eps );
         
         for (int j=1; j < xx.cols(); j++) {
             if (i == j || ignore[j] )
@@ -222,9 +237,9 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             
             char *v = df.header[j];
             const Eigen::VectorXd& y = xx.col(j);   
-            if ( StdDev(y) < eps || ignore[j]){
+            if ( ignore[j] || allUnique(y) || StdDev(y) < eps ){
                 ignore[j] = 1;
-                printf("===> V STDDEV ==0 NO unique values in Y: {%s}\n",v);
+                printf("===> V STDDEV ==0 NO unique values in Y: {%s}\r",v);
                 continue;
             }
             
@@ -241,6 +256,30 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
     (ofile !=stdout)? fclose(ofile) : NULL;
 }
 //-------------------------------------------------------------------------------
+void Test1(const char * file, const CSV& df,const Eigen::MatrixXd& xx, 
+                      const char *out, int from, int to){    
+    int c = 0;
+    int n = xx.cols();
+    printf("**********#===> Total Number of Columns: %d \n", (int)(xx.cols()) );
+    
+    for (int i = 1; i < n; i++) {
+        const char * u = df.header[i];
+        //if ( strcmp(u, "PIC401.SV") != 0 ) continue;
+     
+        const Eigen::VectorXd& x = xx.col(i);
+        double sx = StdDev(x);
+        double eps= 1e-14;
+        int au = allUnique(x);
+        if ( au || sx < eps) {
+            c++;
+            printf("+grep %s normal1.inv.xml.csv #%d: %d %f\n",u, i, au, sx);
+        } else {
+            printf("-grep %s normal1.inv.xml.csv #%d: %d %f\n",u, i, au, sx);
+        }
+    }
+    printf("Total %d\n",c);
+}
+
 void* runINVX(void *inp){
     MParams& p1 = *(MParams*)inp;
     CreateInvariants(p1.file, p1.df, p1.xx, p1.out, p1.from, p1.to);
@@ -279,16 +318,18 @@ void SplitRun(int n, MParams& p) {
         sprintf(l.out, "%s-OUT-%05d-%05d.csv", l.file,l.from, l.to);
         printf("%d Run from %d - %d (each: %d/%ld) out: %s\n",
                                j, l.from, l.to, each, p.xx.cols(), l.out);
-        int ret = pthread_create(&ids[j],NULL,&runINVX, (void*)&l);
+        int ret = pthread_create(&ids[j], NULL, &runINVX, (void*)&l);
         if(ret !=0){
             printf("Thread Creating Failed!!.\n");
             exit(1); 
         }
     }
+    
     for (--j; j >=0; j--){
         pthread_join(ids[j], NULL);
     }
     
+    // return; //SADA DELETE
     // COMBINE All files ....
     char  invFile[2*1024];
     sprintf(invFile, "%s.model.csv", p.file);
@@ -311,7 +352,6 @@ void SplitRun(int n, MParams& p) {
     }    
     fclose(file);
 }
-
 //-------------------------------------------------------------------------------
 int main_invx(int argc, char const *argv[]){
     Watch w;

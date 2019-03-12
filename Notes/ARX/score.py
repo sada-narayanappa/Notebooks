@@ -1,4 +1,5 @@
 #!/usr/local/bin/python 
+
 import logging as log
 import sys
 import os
@@ -14,7 +15,6 @@ import cmp
 from numba import jit, autojit
 
 #GLOBALS 
-G_sargs = defaultdict(str);
 #--------------------------------------------------------------------------
 def Usage(msg=''):
     print(msg)
@@ -22,34 +22,21 @@ def Usage(msg=''):
     Ex: python score.py -i data/test.inv.xml -a data/test.csv 
     
     
-score.py -i <invariant.xml> -o <anomaly-file> [-p <prefix for output files>]
+score.py -i <model-file> -a <anomaly-file> [-p <prefix for output files>]
         [-s <starttime date or index>] [-e <endtime date or index>]
         
 -P : append to results file if it exists        
 -S : just Anomaly score
 
--s --start: Optional start time to start from the anomaly file ex: "5/6/2017 10:20"
--e --end  : Optional end time to stop in the anomaly file
+-s : Optional start time to start from the anomaly file ex: "5/6/2017 10:20"
+-e : Optional end time to stop in the anomaly file
 
 Anomaly file must have a first column is the index
 ''')
 
 def deleteFile(f):
-    try:    os.remove(f) 
+    try: os.remove(f) 
     except: pass;
-    
-def predict1(x, y, n,m,k, theta, t):
-    yh=0 
-    for i in range(n):
-        py = y[t-i-1]
-        yh += py * theta[i] * -1.0
-            
-    for i in range(m+1):
-        px = x[t-m-k+i]
-        yh += px * theta[n+m-i]
-
-    yh += theta[-1]
-    return yh, y[t] - yh
 
 @jit(nopython=True, cache=True)
 def predict3(x, y, n,m,k, theta, t):
@@ -62,53 +49,6 @@ def predict3(x, y, n,m,k, theta, t):
     rs = (y[t] - yh)
     return yh ,rs
 
-# t = at time
-def DetectAnomaly0(t, invDF, anomDF, sumFitness, edgeCounts, logdetailed=True, ret=Map({}) ):
-    if (not ret): 
-        ret = Map({});
-        ret.brkns = Map({});
-        
-    ret.t = t;
-    ret.anomScore = 0;
-    ret.brokenInvs= 0;
-    ret.SumSignif = 0;
-    ret.brkSignif = 0;
-    ret.scores = []
-    ret.sumFitness = sumFitness; #sum(invDF.fitness.astype(float));
-
-    for i, r in invDF.iterrows():
-        brkn= Map({})
-        brkn.brknFitSum =0;
-        brkn.r = r
-        u=anomDF[r.uName].values
-        y=anomDF[r.yName].values
-        brkn['uName'] = r.uName; brkn['yName'] = r.yName; #brkn.nmk = (r.n, r.m, r.k)
-        ret.brkns[brkn.uName+":"+brkn.yName] = brkn
-        
-        brkn.yh, brkn.res = predict1(u, y, r.n, r.m, r.k, r.theta1, t, False)
-        if (r.threshold):
-            brkn.sigf  = abs(brkn.res)/r.threshold
-        else:
-            brkn.sigf = math.inf
-            
-        ret.SumSignif += brkn.sigf
-        brkn.wsigf     = brkn.sigf * r.fitness
-        brkn.broken = " "
-        brkn.y = y[t]
-        
-        if (abs(brkn.res) > r.threshold * 1.1):
-            brkn.broken = "*"
-            ret.anomScore += r.fitness
-            ret.brokenInvs+= 1
-            ret.brkSignif += brkn.sigf
-
-    ret.normedScore = ret.anomScore/ret.sumFitness
-    ret.suspicions, ret.suspicionsCounts = suspicions(ret, edgeCounts, logdetailed);
-    
-    if ( logdetailed ):
-        print( "Score: {:3d} Anom:{:10.4f} Norm:{:5.2f} brk:{:3d}".format( \
-                                 t, ret.anomScore, ret.normedScore, ret.brokenInvs) )
-    return ret;
 
 def DetectAnomaly(t, invDFA,invDFC,anomDFA,anomDFC, sumFitness, edgeCounts, logd=True,ret=None):
     if (not ret): 
@@ -170,14 +110,14 @@ def DetectAnomaly(t, invDFA,invDFC,anomDFA,anomDFC, sumFitness, edgeCounts, logd
 
 #--------------------------------------------------------------------------
 def suspicions(ret, edgeCounts, logDetailed=True):
-    bvars=defaultdict(int)
+    bvars=defaultdict(float)
     bvarsCount=defaultdict(int)
     bfits=0;
     for i,brkn in sorted(ret.brkns.items()):
         #print(i)
         if (logDetailed):
-            print("{} {} fit: {:.4f} Sigf: {:10.4f}({:7.4f}) score: {:6.2f} - {:6.2f} = {:8.2f}, thresh: {:12.6f}".format(brkn.broken,\
-            i,  brkn.fitness, brkn.sigf, brkn.wsigf, brkn.y, brkn.yh, brkn.res, brkn.threshold* 1.1) )
+            print("{} {} fit: {:.4f} Sigf: {:10.4f}({:7.4f}) score: {:6.2f} - {:6.2f} = {:8.2f}, thresh: {:12.6f}".\
+            format(brkn.broken,i,  brkn.fitness, brkn.sigf, brkn.wsigf, brkn.y, brkn.yh, brkn.res, brkn.threshold* 1.1) )
         if ( brkn.broken.strip()):
             bvars[brkn.uName] += brkn.fitness
             bvars[brkn.yName] += brkn.fitness
@@ -235,13 +175,11 @@ def FindResiduals(invDF, anomDF, start=None,stop=None, log=False, filePrefix="Re
     time1 = datetime.datetime.now()
     print("{}, maxLag:{}, #Nodes:{}, #Invariants:{}, sumFit:{}".format( \
                                     time1, maxLag, len(nodes), len(edges), sumFit))
-
     #ret=Map({})
-    if ( "-P" not in  G_sargs ):
-        print( "Deleting files: ... " )
-        deleteFile(filePrefix +"_AnomScores.csv") 
-        deleteFile(filePrefix +"_BrokenInvs.csv")
-        deleteFile(filePrefix +"_RankScores.csv")
+    print( "Deleting files: ... " )
+    deleteFile(filePrefix +"_AnomScores.csv") 
+    deleteFile(filePrefix +"_BrokenInvs.csv")
+    deleteFile(filePrefix +"_RankScores.csv")
         
     scoreFile = open(filePrefix +"_AnomScores.csv", "a", 128); # Anomaly Scores
     brInvFile = open(filePrefix +"_BrokenInvs.csv", "a");      # Broken Invariant File 
@@ -263,26 +201,17 @@ def FindResiduals(invDF, anomDF, start=None,stop=None, log=False, filePrefix="Re
         anomDFC[c] = i;
     
     for t in range(start, stop):
-        dt=0;
-#       try:
-        d1 = datetime.datetime.now()
         r=DetectAnomaly(t, invDFA, invDFC, anomDFA, anomDFC, sumFit, edgeCounts, log, r, )
-        d2 = datetime.datetime.now()
-        dt = d2- d1;
-#        except:
-#            print("\n: error occured during scoring");
-#            break;
             
         tm=anomDF.ix[t][0]
         o1 = "{},{},{},{}\n".format(tm, r.anomScore, r.normedScore, r.brokenInvs) 
         scoreFile.write(o1)
-        #scoreFile.flush()
         
         formatBrokenInvs(r, tm, brInvFile, not nLines);
         formatRankScores(nodes, r, tm, edgeCounts, ranksFile, not nLines);
         nLines += 1
         
-        sys.stdout.write('\r Completed {} of {} {}'.format(nLines, stop-start,str(dt) ))
+        sys.stdout.write(f'\r Completed {nLines} of {stop-start}')
     
     time2 = datetime.datetime.now()
     print("\n\n*** ALL Done {} ... {}".format(time2, str(time2-time1)) )
@@ -294,15 +223,14 @@ def FindResiduals(invDF, anomDF, start=None,stop=None, log=False, filePrefix="Re
     return edgeCounts;
     
 #--------------------------------------------------------------------------
-def process():
-    global G_sargs
-    startTime = G_sargs['-s']
-    endTime   = G_sargs['-e']
-    invFile   = G_sargs['-i']
-    anomFile  = G_sargs['-a']
-    filePrefix= G_sargs['-p'] or anomFile.replace(".csv","");
+def process(opts):
+    startTime = opts['-s']
+    endTime   = opts['-e']
+    invFile   = opts['-i']
+    anomFile  = opts['-a']
+    filePrefix= opts['-p'] or anomFile.replace(".csv","");
 
-    print(G_sargs)
+    print(opts)
 
     if ( not os.path.exists(anomFile) ):
         print("Anomaly file '{}' does not exist: ".format(anomFile));
@@ -316,28 +244,38 @@ def process():
     print("Creating Score Files ... FilePrefix: ",  filePrefix)
     
     FindResiduals(invDF, anomDF, filePrefix= filePrefix); # Lets ignore start and stop for now
-    return '';
 
 #--------------------------------------------------------------------------
 def main():
-    global G_sargs
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"hi:a:p:s:e:P:S",["start=","end="])
+        opts, args = getopt.getopt(sys.argv[1:],"hi:a:p:s:e:P:S")
     except getopt.GetoptError as e:
         Usage("Getopt Error:" + str(e));
         sys.exit(2)
-    opth=False;    
-    for opt, arg in opts:
-        if opt == '-h': opth = True; 
-        elif opt in ("--start"):  G_sargs['-s']=arg;
-        elif opt in ("--end"):    G_sargs['-e']=arg;
-        else:          
-            G_sargs[opt]=arg;
-
-    if ( opth ): 
-        Usage("Arguments required: "); sys.exit(1);
-        
-    process()
+    options = defaultdict(str)
     
+    for o,a in opts: options[o] = a;
+    options['args'] = args;
+    
+    if ( "-h" in opts or "-i" not in options or "-a" not in options or len(opts) <1 ): 
+        Usage(f"-i and -a Arguments required:  {len(opts)}"); 
+        #sys.exit(1);
+    
+    process(options)
+    
+def inJupyter():
+    try:
+        get_ipython
+        return True
+    except:
+        return False
+
 if __name__ == '__main__':
-    main()
+    if (not inJupyter()):
+        t1 = datetime.datetime.now()
+        main()
+        t2 = datetime.datetime.now()
+        print(f"All Done in {str(t2-t1)} ***")
+    else:
+        pass #dfi1, dfi2 = testCompareInvCSV ("/EXTDATA/app1/test/rtest.inv.xml",'/EXTDATA/app1/test/rtest.model')
+        #dfi1, dfi2 = TestCompareInvCSV ("data/test.inv.xml", "data/test.csv.inv.csv")
