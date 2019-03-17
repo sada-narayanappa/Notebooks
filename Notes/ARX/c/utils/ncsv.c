@@ -5,8 +5,6 @@
 #include "any.h"
 #include "ncsv.h"
 
-any::any(): type(TYPEINT), str(buff){data.i=0;dump();}    
-
 const char* move(const char *p){
     while(*p && isspace((unsigned char)*p)) {
         p++;
@@ -43,11 +41,18 @@ const char * ncsv::Read(const char *file1, int nrows, const char *ignore){
 }
 
 void ncsv::dump(){
-    for (int i=0; i < ncols; i++)  printf("%s%s", head[i].str,(i==ncols-1)?"":",");printf("\n");
+    for (int i=0; i < ncols; i++)  printf("%s%s", head[i].data.c,(i==ncols-1)?"":",");printf("\n");
     for (int j=0; j < nrows; j++){
         int nd = ncols;
         for (int i=0; i < nd; i++){
-            printf("%s%s", data[i][j].str, (i == nd-1) ?"":"," );
+            if (data[i][j].type == TYPECHAR)
+                printf("%s%s", data[i][j].data.c, (i == nd-1) ?"":"," );
+            else if (data[i][j].type == TYPEINT)
+                printf("%d%s", data[i][j].data.i, (i == nd-1) ?"":"," );
+            else if (data[i][j].type == TYPEDOUBLE)
+                printf("%f%s", data[i][j].data.d, (i == nd-1) ?"":"," );
+            else
+                printf("%s%s", "UKNOWN-TYPE", (i == nd-1) ?"":"," );
             //printf("%d%s", data[i][j].type, (i == ncols-1) ?"":"," );
         }
         printf("\n");

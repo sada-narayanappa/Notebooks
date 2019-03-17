@@ -6,15 +6,15 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include <Eigen/Dense>
-#include <Eigen/Core>
-#include <unsupported/Eigen/MatrixFunctions>
 
 #define LINESIZE   8 * 1024 * 256
 
 int isspace ( int c );
 
 extern char *Trim(char *str);
+int haveNUniqueVals(double *a, int n, int nu);
+double mmean(double *a, int n);
+double mstd(double *a, int n);
 
 struct CSV {
 public:
@@ -75,8 +75,5 @@ public:
 
     const char* Read(const char *filename, int nrows = -1, int *columns= NULL, const char *ignore="##");
 };
-
-//Must have at least 3 unique values
-void GetMatrix(const CSV& csv, Eigen::MatrixXd & x, int getall=0, int uniq=3);
 
 #endif

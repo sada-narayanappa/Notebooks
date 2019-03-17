@@ -14,7 +14,8 @@ INCLUDES =  -I".." `pkg-config --cflags eigen3`
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = -lpcap 
-OBJECTS =  linreg.o CSV.o model.o LR.o ncsv.o
+OBJECTS  =  linreg.o CSV.o model.o LR.o CSVUtils.o main.o invx.o
+OBJECTS1 =  CSV.o score.o model.o ncsv.o
 DEPENDENCIES = main.o score.o 
 CFLAGS = -g -O2 -Wall -Wno-unused
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
@@ -37,22 +38,23 @@ all: $(PROGRAMS) $(PROGRAMS1)
 .S.o:
 	$(COMPILE) -c $<
 
-$(PROGRAMS): $(OBJECTS) invx.o $(DEPENDENCIES)
+$(PROGRAMS): $(OBJECTS) CSVUtils.o $(DEPENDENCIES)
 	@rm -f $(PROGRAMS)
-	$(LINK) $(LDFLAGS) $(OBJECTS) invx.o main.o $(LDADD) $(LIBS)
+	$(LINK) $(LDFLAGS) $(OBJECTS) $(LDADD) $(LIBS)
 
-$(PROGRAMS1): $(OBJECTS) $(DEPENDENCIES)
+$(PROGRAMS1): $(OBJECTS1) $(DEPENDENCIES)
 	@rm -f $(PROGRAMS1)
-	$(LINK) $(LDFLAGS) $(OBJECTS) score.o $(LDADD) $(LIBS)
+	$(LINK) $(LDFLAGS) $(OBJECTS1) $(LDADD) $(LIBS)
 
 main.o: main.c
 linreg.o: linreg.c linreg.h
 CSV.o: CSV.c CSV.h
-ncsv.o: ncsv.c ncsv.h
+ncsv.o: ncsv.c ncsv.h any.h
 model.o: model.c linreg.h
 LR.o: LR.c LR.h
 invx.o: invx.c invx.h
 score.o: score.c invx.h
+CSVUtils.o: CSVUtils.c csv.h
 
 clean:
 	rm -f *.o $(PROGRAMS) core *.core OUT*

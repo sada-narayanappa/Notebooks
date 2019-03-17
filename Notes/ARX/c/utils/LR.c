@@ -7,6 +7,8 @@
 #include <Eigen/Core>
 #include <unsupported/Eigen/MatrixFunctions>
 
+void GetMatrix(const CSV& csv, Eigen::MatrixXd & x, int getall=0, int uniq=3);
+
 
 //EigenUtilities:
 void p(const Eigen::VectorXd& m, const char* str, int all) {

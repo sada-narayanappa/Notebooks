@@ -7,12 +7,10 @@
 #include "any.h"
 
 #define LINESIZE   8 * 1024 * 256
-
 int isspace ( int c );
 extern char *Trim(char *str);
 extern const char* move(const char *p);
 extern const char* trimFromEnd(char *p, const char* beginning);
-
 
 #define MAXCOLUMNS 32
 struct ncsv {

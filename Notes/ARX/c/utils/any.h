@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-
 //0 int;1 double; 2 const char*;
 #define TYPEINT     0
 #define TYPEDOUBLE  1
@@ -15,65 +14,55 @@ struct any {
     union Data {
         int     i;
         double  d;
-        const char *  c;
+        const char *c;
         void *  v;
     }data;
     int type;
-    char buff[32];
-    const char* str;
+    int deletePtr;
     
-    any();
-        
+    any(): type(TYPECHAR), deletePtr(0){data.c=NULL;}  
+    any(const char * c, int del=0) {
+        //data.c = c; deletePtr = del;
+    }
     void ToInt() {
-        if ( type == TYPEINT) {
-            return;
-        } else if( type == TYPEDOUBLE )
-            data.i = (int) data.d;
-        else if( type == TYPECHAR )
-            data.i = atoi(data.c);
+        if ( type == TYPEINT)          return;
+        else if( type == TYPEDOUBLE)   data.i = (int) data.d;
+        else if( type == TYPECHAR  )   data.i = atoi(data.c);
         
         type = TYPEINT;
-        dump();
     }
     void ToDouble() {
-        if ( type == TYPEDOUBLE) {
-            return;
-        } else if( type == TYPEINT )
-            data.d = (double) data.i;
-        else if( type == TYPECHAR )
-            data.d = atof(data.c);
-            
+        if ( type == TYPEDOUBLE)    return;
+        else if( type == TYPEINT )  data.d = (double) data.i;
+        else if( type == TYPECHAR ) data.d = atof(data.c);
         type = TYPEDOUBLE;
-        dump();
     }    
     void set(void *v){
         data.v = v;
         type = TYPEVOID;
-        dump();
     }
     void set(double d){
-        data.d = 0.0;
+        data.d = d;
         type = TYPEDOUBLE;
-        dump();
     }
-    const char * set(const char* d, int t=2){
+    const char * set(const char* d, int t= TYPECHAR){
         data.c = d;
              if (t == 0 )  { data.i = atof(d); }
         else if (t == 1 )  { data.d = atof(d);}
         type =t;
-        dump();
         return d;
     }
-    const char * dump() {
+    const char * tostring(char *buff = NULL) {
+        const char * ret = buff;
         switch (type) {
-            case TYPEINT:    sprintf(buff,"%d", data.i);  str=buff; break;
-            case TYPEDOUBLE: sprintf(buff,"%lf", data.d); str=buff; break;
-            case TYPECHAR:   str = data.c; break;
-            case TYPEVOID:   sprintf(buff,"Void*: %p", data.v); str=buff; break;
+            case TYPEINT:    sprintf(buff,"%d", data.i);  break;
+            case TYPEDOUBLE: sprintf(buff,"%lf", data.d); break;
+            case TYPECHAR:   ret = data.c; break;
+            case TYPEVOID:   sprintf(buff,"Void*: %p", data.v); break;
             default:
-               sprintf(buff,"%s", "UKNOWN"); str=buff; break;
+               sprintf(buff,"%s", "UKNOWN"); break;
         }
-        return str;
+        return ret;
     }    
 };
 #endif

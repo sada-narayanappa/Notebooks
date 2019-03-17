@@ -346,10 +346,12 @@ void SplitRun(int n, MParams& p) {
     fclose(file);
 }
 //-------------------------------------------------------------------------------
+void GetMatrix(const CSV& csv, Eigen::MatrixXd & x, int getall=0, int uniq=3);
+
 int main_invx(int argc, char const *argv[]){
     Watch w;
     if (argc <= 1){
-        printf("Ex: INVX.exe <csv-file> <#threads> <from-column> <to-column>");
+        printf("Ex: INVX.exe <csv-file> <#threads> <from-column> <to-column> MAX_N MAX_M MAX_K");
         return 0;
     }
     const char * file = (argc > 1) ? argv[1]: "../data/test1.csv";

@@ -21,6 +21,7 @@ using namespace std;
 float ARModelThreshold = 0.7;
 
 typedef vector< vector<double> > ThetaType;
+map<char, string> opts;
 //---------------------------------------------------------------------------------
 template<typename A, typename B>
 std::pair<B,A> flip_pair(const std::pair<A,B> &p){
@@ -274,6 +275,11 @@ void FindScore1(int t, double sumFit,
         }
     }
     printf("=>%d,%d,%lf,%d,\"[",t,(int)adf.data[0][t],anomScore,brknCount);
+    if (opts.find('a') != opts.end()){
+        printf("]\"\n");
+        return;
+    }
+    
     char buff[128];
     int i =0;
     //Sort Pairs & sensors
@@ -362,26 +368,55 @@ void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024
             break;
     }
 }
+/*-----------------------------------------------------------------------------------
+Parameters: 
+ 1. model file
+ 2. csv file upon which you need to do inferences
+ 3. filter the model -f -e 0.7 -b 0.5 - parameter: ;) you know what I means
+ 4. start row for inference file
+ 5. End row for inference file
+*/
+#include <getopt.h>
+void getopts(int argc, char **argv) {
+    fprintf(stderr, 
+            "SCORE.EXE <options> model-file inference-file \n"
+            "     -f forward fitness score \n"
+            "     -b both fitness score must be above to consider \n"
+            "     -s start row in inference file\n"
+            "     -e end row in inference file \n"
+            "     -i model-file \n"
+            "     -t time-series file \n"
+            "     -a Print only Anomaly Score \n"
+            "     -A Amount of Broken Pairs to Return \n"
+           );    
 
-void test(){
-    vector< vector<double> > t1;
-    t1.resize(1024*1024, vector<double>(8, 0.));
-    for (int i=0; i< 8; i++){
-        printf("%f", t1[0][i]);
+    int c;
+    while ((c = getopt (argc, argv, "fbAas:e:i:t:")) != -1){
+        opts[c] = optarg ? optarg : "-";
     }
-    printf("\n");
-}
-int main(int argc, char const *argv[]){
-    //test(); return 0;
-    Watch w;
-    //createTheta();  return 0;
-    //const char * mfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/normal1.inv.xml.csv";
-    const char * mfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/normal1.csv.model.csv";
-    //const char * cfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/ab1.csv";
-    const char * cfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/abnormal1.csv";
-
-    fprintf(stderr, "SCORE.EXE %s %s\n", mfile, cfile);    
+    for (int i = optind; i < argc; i++)
+        opts[128+i] = argv[i];
     
+    if ( opts.find('i') == opts.end() || opts.find('t') == opts.end() ) {
+        fprintf(stderr, "*ERROR: Must provide model file and time series file! \n");
+        abort();
+    }
+    fprintf(stderr, "WILL USE OPTIONS:\n");
+    for ( map<char, string>::iterator it = opts.begin(); it != opts.end(); it++ ){
+        int hj=(it->first);
+        fprintf(stderr,"  -[%c] (%5d) [%s]\n", it->first, hj, it->second.c_str());
+    }
+}
+int main(int argc, char **argv){
+    getopts(argc, argv);
+    Watch w;
+    const char * mfile;
+    const char * cfile;
+    mfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/normal1.csv.model.csv";
+    cfile= "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/ab1.csv";
+    mfile = opts['i'].c_str();
+    cfile = opts['t'].c_str();
+
     ncsv model;  
     model.Read(mfile);
     model.ToDouble(2);
