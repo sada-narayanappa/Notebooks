@@ -21,6 +21,7 @@ struct invx{
 
 struct MParams {
     const char      *file;
+    const char      *modelFile;
     int              from;
     int              to;
     char             out[2*1024];
@@ -34,6 +35,13 @@ struct MParams {
     MParams(const char* fi, int f, int t,const CSV &df1, Eigen::MatrixXd  &xx1): 
                 df(df1), xx(xx1) {
         file = fi;
+        from = f; to = t;
+        out[0]=0;
+    }
+    MParams(const char* fi, const char* mfile, int f, int t,const CSV &df1, Eigen::MatrixXd  &xx1): 
+                df(df1), xx(xx1) {
+        file = fi;
+        modelFile = mfile;
         from = f; to = t;
         out[0]=0;
     }

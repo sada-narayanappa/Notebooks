@@ -1,3 +1,4 @@
+#!/usr/local/bin/python 
 from invx import *
 import logging as log
 import sys
@@ -9,7 +10,6 @@ import getopt
 from collections import defaultdict
 import math
 import re;
-import collections
 import gc
 import json
 from Jupytils import Map
@@ -55,15 +55,12 @@ def AreTwoRowsSame(dfi1, dfi2, loc =0):
         pass; #print(loc, ' ', end='')    
     return ret;
 
-def thetaF1(ret):
+def thetaF(ret, xml=True):
     t = np.array([ float(i.strip()) for i in  ret['theta'].split(',') if i.strip()])
-    t[0:ret.n] *= -1;
+    if (xml):
+        t[0:ret.n] *= -1;
     return t
 
-def thetaF2(ret):
-    t = [ float(i.strip()) for i in  ret['theta'].split(',') if i.strip()]
-    return t
-      
 def LoadInvFile(file):
     if ( file.endswith("xml")):
         dfi1=LoadDataSet( file, xmlTag="Invariant")
@@ -80,9 +77,9 @@ def LoadInvFile(file):
     dfi1.threshold = dfi1.threshold.astype(float)     
    
     if ( file.endswith("xml")):
-        dfi1['theta1']= dfi1.apply (lambda row: thetaF1(row),axis=1)  # Convert to float array
+        dfi1['theta1']= dfi1.apply (lambda row: thetaF(row),axis=1)  # Convert to float array
     else:
-        dfi1['theta1']= dfi1.apply (lambda row: thetaF2(row),axis=1)  # Convert to float array
+        dfi1['theta1']= dfi1.apply (lambda row: thetaF(row,0),axis=1)  # Convert to float array
 
     dfi1.sort_values(['uName', 'yName'], inplace=True)
     dfi1.reset_index(inplace=True, drop= True)
@@ -92,6 +89,18 @@ def TestCompareInvCSV(invFile, invCSV, log=True, breakOnMisMatches=3, start=0, e
     dfi1 = LoadInvFile(invFile) if type(invFile) == str else invFile
     dfi2 = LoadInvFile(invCSV)  if type(invCSV)  == str else invCSV
 
+    allUVs1   = np.unique( list(dfi1.uName.values) + list(dfi1.yName.values) )
+    allUVs2   = np.unique( list(dfi2.uName.values) + list(dfi2.yName.values) )
+
+    s1 = set(allUVs1)
+    s2 = set(allUVs2)
+    if (s1-s2):
+        print(f"There are {len(s1-s2)} sensors in 1 and not in 2:",  list(s1-s2)[0:10] )
+    if (s2-s1):
+        print(f"There are {len(s2-s1)} sensors in 2 and not in 1:",  list(s2-s1)[0:10] )
+    if( len(allUVs1) != len(allUVs2) ):
+        print("Not all U, V's present {len(allUVs1)} {len(allUVs2)}")
+        
     if( len(dfi1) != len(dfi2) ):
         print(f"*MISMACTH Files have different Length: :{len(dfi1)}, :{len(dfi2)}")
         #return dfi1, dfi2

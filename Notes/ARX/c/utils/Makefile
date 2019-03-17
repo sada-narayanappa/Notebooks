@@ -7,20 +7,21 @@ CC = g++
 #SOURCES = datalink.c flow.c main.c tcpip.c tcp.c util.c sysdep.h tcpmig.h
 #CONFIG_HEADER = conf.h
 PROGRAMS = INVX.EXE
+PROGRAMS1 = SCORE.EXE
 
 DEFS = -DHAVE_CONFIG_H -I.
 INCLUDES =  -I".." `pkg-config --cflags eigen3`
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = -lpcap 
-OBJECTS =  main.o linreg.o CSV.o model.o LR.o invx.o
-DEPENDENCIES = 
+OBJECTS =  linreg.o CSV.o model.o LR.o ncsv.o
+DEPENDENCIES = main.o score.o 
 CFLAGS = -g -O2 -Wall -Wno-unused
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 
-all: $(PROGRAMS)
+all: $(PROGRAMS) $(PROGRAMS1)
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
 
@@ -36,16 +37,22 @@ all: $(PROGRAMS)
 .S.o:
 	$(COMPILE) -c $<
 
-$(PROGRAMS): $(OBJECTS) $(DEPENDENCIES)
+$(PROGRAMS): $(OBJECTS) invx.o $(DEPENDENCIES)
 	@rm -f $(PROGRAMS)
-	$(LINK) $(LDFLAGS) $(OBJECTS) $(LDADD) $(LIBS)
+	$(LINK) $(LDFLAGS) $(OBJECTS) invx.o main.o $(LDADD) $(LIBS)
+
+$(PROGRAMS1): $(OBJECTS) $(DEPENDENCIES)
+	@rm -f $(PROGRAMS1)
+	$(LINK) $(LDFLAGS) $(OBJECTS) score.o $(LDADD) $(LIBS)
 
 main.o: main.c
 linreg.o: linreg.c linreg.h
 CSV.o: CSV.c CSV.h
+ncsv.o: ncsv.c ncsv.h
 model.o: model.c linreg.h
 LR.o: LR.c LR.h
 invx.o: invx.c invx.h
+score.o: score.c invx.h
 
 clean:
 	rm -f *.o $(PROGRAMS) core *.core OUT*

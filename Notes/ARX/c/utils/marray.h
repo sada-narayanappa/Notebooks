@@ -10,7 +10,6 @@ public:
     int n;
     int capacity;
     T*  a;
-    
     marray(int len=1) {
         int cap = len > 1? len:1;
         n = capacity = 0;
@@ -21,13 +20,11 @@ public:
         n = 0;
         delete [] a;
     }
-    
     void Dump() {
         printf("Length %d: capacity: %d, First few elements: ", n, capacity);
         for(int i=0 ; i < min(10,n); i++) {
             printf("%.2f ", a[i]);
         }
-
         printf("%s \n", ( n > 10)? "...":"");
     }
     void ExtendTo(int cap) {

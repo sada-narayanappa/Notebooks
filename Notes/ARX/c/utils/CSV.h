@@ -14,6 +14,7 @@
 
 int isspace ( int c );
 
+extern char *Trim(char *str);
 
 struct CSV {
 public:
@@ -31,7 +32,7 @@ public:
         nColumns = 0, nRows = 0;
         error = NULL;
     }
-    CSV(const char *f) {
+    CSV(const char *f){
         fileName = NULL; header = NULL; msg = NULL; data = NULL; user = NULL;
         nColumns = 0, nRows = 0; error = NULL;
         Read(f);
@@ -47,18 +48,6 @@ public:
     }
     void Dump(int numRows = 4);
     
-    char *Trim(char *str) {
-        char *end;
-        while(isspace((unsigned char)*str)) str++;
-
-        if(*str == 0) return str;
-        
-        end = str + strlen(str) - 1;                // Trim trailing space
-        while(end > str && isspace((unsigned char)*end)) end--;
-        
-        end[1] = '\0';                              // Write new null terminator character
-        return str;
-    }
     
     void GetColumns(char *iline) {
         const char* tok;
@@ -85,7 +74,6 @@ public:
     }
 
     const char* Read(const char *filename, int nrows = -1, int *columns= NULL, const char *ignore="##");
-
 };
 
 //Must have at least 3 unique values

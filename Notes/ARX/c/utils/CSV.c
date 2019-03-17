@@ -64,18 +64,29 @@ void GetMatrix(const CSV& csv, Eigen::MatrixXd & x, int getall, int uniq){
         }
         willget[count++] = i;
     }
-    
     //printf("#Columns: %d ",count); 
     for (int i =0; i <count; i++) {
         //printf("%s ", csv.header[ willget[i]] );
     }
-    
     x.resize( csv.nRows, count );
     for (int i=0; i < count; i++)
         for (int j=0; j < csv.nRows; j++){            
             int c = willget[i];
             x(j,i) = csv.data[ c ][j];
         }
+}
+char *Trim(char *str){
+    char *end;
+    while(isspace((unsigned char)*str)) str++;
+
+    if(*str == 0) return str;
+
+    end = str + strlen(str) - 1;                // Trim trailing space
+    while(end > str && isspace((unsigned char)*end)) end--;
+
+    if ( end > str)
+        end[1] = '\0';                              // Write new null terminator character
+    return str;
 }
 
 //-------------------------------------------------------------------------
@@ -89,7 +100,7 @@ void CSV::Dump(int numRows) {
     // print all rows and be done!!
     if (nRows <= 2*numRows) {
         for (int i=0; i < numRows; i++) {
-            printf("%d: ",i);
+            printf("=>%d: ",i);
             for (int j=0; j < nColumns; j++) {
                 printf("%3.2f,", data[j][i]);
             }
@@ -97,22 +108,27 @@ void CSV::Dump(int numRows) {
         }
         return;
     }
-    
+    int minColumns=10;
     for (int i=0; i < numRows; i++) {
-        printf("%d: ",i);
-        for (int j=0; j < nColumns; j++) {
+        printf("=>%d: ",i);
+        for (int j=0; j < min(minColumns,nColumns); j++) {
             printf("%3.2f,", data[j][i]);
         }
+        if ( nColumns > minColumns)
+            printf( "... Omitted %d columns/%d...", nColumns-minColumns, nColumns);
         printf("\n");
     }
-    printf("...\n");    
+    printf("...(%d ... %d) not print ;)\n", numRows, nRows-numRows-1);    
     for (int i=nRows-numRows; i < nRows ; i++) {
-        printf("%d: ",i);
-        for (int j=0; j < nColumns; j++) {
+        printf("=>%d: ",i);
+        for (int j=0; j < min(minColumns,nColumns); j++) {
             printf("%3.2f,", data[j][i]);
         }
+        if ( nColumns > minColumns)
+            printf( "... Omitted %d columns/%d...", nColumns-minColumns, nColumns);
         printf("\n");
     }
+    printf("--END: %s, Shape= %d X %d \n", fileName, nColumns, nRows);
 }
 
 const char* CSV::Read(const char *filename, int nrows, int *columns, const char *ignore){
@@ -138,6 +154,7 @@ const char* CSV::Read(const char *filename, int nrows, int *columns, const char 
         int j = 0;
         const char* tok;
 
+        //printf("=>%s\n",line1);
         for (tok = strtok(line, ","); tok && *tok; j++, tok = strtok(NULL, ",\n")) {
             data[j][i] = atof(tok);
         }

@@ -27,7 +27,7 @@ struct Watch {
             int mn = (seconds / 60) % 60;
             int se = (seconds % 60);
             long micros = ((seconds * 1000000) + t2.tv_usec) - (t1.tv_usec);
-            printf("%s %s: %d => %0d:%0d:%0d %ld micros\n", print, now,seconds, hr,mn,se, micros);
+            fprintf(stderr, "%s %s: %d => %0d:%0d:%0d %ld micros\n", print, now,seconds, hr,mn,se, micros);
         }
         return seconds;
     }

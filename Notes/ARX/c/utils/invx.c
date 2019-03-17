@@ -88,8 +88,9 @@ void ARXModelLR(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m
 }
 
 double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
-                int n, int m, int k,Eigen::VectorXd& theta, double t, double& rs) {
-    double yh = theta[theta.rows()-1];
+                int n, int m, int k,const Eigen::VectorXd& theta, double t, double& rs) {
+    //double yh = theta[theta.rows()-1];
+    double yh = theta[n+m+1];
     for(int i=0; i <n; i++){
         yh += y[t-n+i] * theta[n-1-i];
     }
@@ -102,7 +103,6 @@ double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y,
 
 double FitnessScore(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
                   int n, int m, int k, Eigen::VectorXd& theta) {
-    
     int s= MAX(n,m+k);
     
     Eigen::VectorXd ys = y.segment(s, y.rows()-s);
@@ -132,7 +132,6 @@ double ComputeResid(const Eigen::VectorXd& y, const Eigen::VectorXd& x,
     double threshold= (yh1.array().abs()).maxCoeff() * 1.05;
     return threshold; 
 }
-
 
 void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x, 
               Best& best, int indexOfyColumn, const char* uName ) {
@@ -212,7 +211,6 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
         fprintf(ofile, "%s",best.Head());
         //fprintf(ofile, "#File: %s %ld %ld %d %d OUT: %s\n",
         //                    file,xx.rows(),xx.cols(),from, to, out);
-
     int nvars = 0;
     for (int i = from; i < xx.cols(); i++) {
         if ( i > to )
@@ -230,7 +228,6 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             continue;
         }
         //printf("===> Doing {%s} %f %d\n",u, sx, sx < eps );
-        
         for (int j=1; j < xx.cols(); j++) {
             if (i == j || ignore[j] )
                 continue;
@@ -242,7 +239,6 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
                 printf("===> V STDDEV ==0 NO unique values in Y: {%s}\r",v);
                 continue;
             }
-            
             best.u = u;
             best.v = v;
             findBest(y, x, best, j, v);
@@ -324,12 +320,9 @@ void SplitRun(int n, MParams& p) {
             exit(1); 
         }
     }
-    
     for (--j; j >=0; j--){
         pthread_join(ids[j], NULL);
     }
-    
-    // return; //SADA DELETE
     // COMBINE All files ....
     char  invFile[2*1024];
     sprintf(invFile, "%s.model.csv", p.file);
@@ -355,8 +348,11 @@ void SplitRun(int n, MParams& p) {
 //-------------------------------------------------------------------------------
 int main_invx(int argc, char const *argv[]){
     Watch w;
+    if (argc <= 1){
+        printf("Ex: INVX.exe <csv-file> <#threads> <from-column> <to-column>");
+        return 0;
+    }
     const char * file = (argc > 1) ? argv[1]: "../data/test1.csv";
-    //check input for number of threads
     int nThreads = (argc > 2) ? atoi(argv[2]): 16;
     
     int from = (argc > 3) ? atoi(argv[3]): 0;
@@ -383,5 +379,4 @@ int main_invx(int argc, char const *argv[]){
     SplitRun(nThreads, p);    
     w.Stop("## Time to Complete: ");
     return 0;
-    //test1();
 }

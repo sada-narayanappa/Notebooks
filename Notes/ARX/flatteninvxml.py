@@ -12,6 +12,11 @@ def thetaF2(ret):
     t = [ float(i.strip()) for i in  ret['theta'].split(',') if i.strip()]
     return t
 
+def thetaF1Str(ret):
+    t = np.array([float(i.strip()) for i in  ret['theta'].split(',') if i.strip()])
+    t[0:ret.n] *= -1;
+    return str(list(t))[1:-1]
+
 def LoadInvFile(file, needTheta1=True):
     if ( file.endswith("xml")):
         dfi1=LoadDataSet( file, xmlTag="Invariant")
@@ -37,10 +42,17 @@ def LoadInvFile(file, needTheta1=True):
     dfi1.reset_index(inplace=True, drop= True)
     return dfi1
 
+def inJupyter():
+    try:get_ipython; return True
+    except: return False;
+
+
 if __name__ == '__main__':
-    if (len(sys.argv) < 2 ): 
-        print("flatteninv.xml <inv.xml file>")
-        sys.exit(1)
-    print("processing ", sys.argv[1])
-    df=LoadInvFile(sys.argv[1], needTheta1=False);
-    df.to_csv( sys.argv[1]+".csv", index=False)
+    if (not inJupyter()):
+        if (len(sys.argv) < 2 ): 
+            print("flatteninv.xml <inv.xml file>")
+            sys.exit(1)
+        print("processing ", sys.argv[1])
+        df=LoadInvFile(sys.argv[1], needTheta1=False);
+        df['theta'] = df.apply (lambda row: thetaF1Str(row),axis=1)
+        df.to_csv( sys.argv[1]+".csv", index=False)
