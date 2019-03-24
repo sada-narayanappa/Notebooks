@@ -11,9 +11,35 @@
 #include "marray.h"
 #include "invx.h"
 #include "LR.h"
+#include "any.h"
 #include <unistd.h> 
 #include <pthread.h> 
+#include <vector>
+#include <map>
+using namespace std;
 
+int MAX_N=2;
+int MAX_M=1;
+int MAX_K=2;
+
+typedef vector< vector<double> > ThetaType;
+map<char, any> opts;
+
+any *getfopt(char o){
+    if (opts.find(o) != opts.end()){
+        return &opts[o];
+    }
+    return NULL;
+}
+const char* getfopt(char o, const char* def){
+    return opts.find(o) != opts.end() ? opts[o].data.c:def;
+}
+double getfopt(char o, double def){
+    return opts.find(o) != opts.end() ? atof(opts[o].data.c):def;
+}
+int getfopt(char o, int def){
+    return opts.find(o) != opts.end() ? atoi(opts[o].data.c):def;
+}
 //---------------------------------------------------------------------------------
 struct ARMap{
     int isAR;
@@ -29,7 +55,7 @@ void CheckARModel(const CSV& df , const Eigen::MatrixXd& xx){
     double fitscore = 0., yh, rs; 
     LinearRegression lr;
     aRMap = new ARMap[ df.nColumns];
-    
+    Eigen::VectorXd theta;
     for (int i=1; i < df.nColumns; i++ ) {
         const Eigen::VectorXd& x = xx.col(i);
         aRMap[i].u = df.header[i];
@@ -38,8 +64,8 @@ void CheckARModel(const CSV& df , const Eigen::MatrixXd& xx){
             continue;
         }
         for(int n=1; n < 4; n++) {
-            ARXModelLR(x, x,n,-1,0, lr);
-            double fitscore = FitnessScore(x,x,n,-1,0, lr.theta);
+            ARXModelLR(x, x,n,-1,0, theta);
+            double fitscore = FitnessScore(x,x,n,-1,0, theta);
             //printf("*** %d %s %f \n", n, aRMap[i].u, fitscore);
             if ( fitscore > ARModelThreshold && fitscore > aRMap[i].fit ) { 
                 aRMap[i].isAR = 1;
@@ -80,11 +106,13 @@ int Regressors(const Eigen::VectorXd& y,const Eigen::VectorXd& x,int n,int m,int
     return offset;
 }
 
-void ARXModelLR(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m, int k, LinearRegression& lr){
+void ARXModelLR(const Eigen::VectorXd& y, const Eigen::VectorXd& x, int n, int m, int k, 
+                Eigen::VectorXd &theta){
     Eigen::MatrixXd r;
     int offset = Regressors(y, x, n,m,k, r);
-    Eigen::VectorXd z = y.segment(offset, y.rows()-offset);                            
-    lr.QR(r, z);
+    Eigen::VectorXd z = y.segment(offset, y.rows()-offset);     
+    
+    theta  = (r.transpose() * r).ldlt().solve(r.transpose() * z);
 }
 
 double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
@@ -98,6 +126,25 @@ double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y,
         yh += x[t-k-i] * theta[i+n];
     }    
     rs = (y[t] - yh);
+    return yh;
+}
+
+double predict3(const Eigen::VectorXd& x, const Eigen::VectorXd& y, 
+                int n, int m, int k, const vector<double> &theta, int t, double& rs) {
+    //long double yh = theta[n+m+1];
+    double yh = theta[n+m+1];
+    
+    for(int i=0; i <n; i++){
+        yh += y[t-n+i] * theta[n-1-i];
+        //printf("predict3 y++ %lf %lf %lf\n", y[t-n+i], theta[n-1-i], yh); 
+    }
+    for(int i=0; i < m+1; i++){
+        yh += x[t-k-i] * theta[i+n];
+        //printf("predict3 x++ %lf %lf %lf\n" , x[t-k-i], theta[i+n],yh);
+    }    
+    //long double rs1 = (y[t] - yh);
+    rs = (y[t] - yh);
+    //printf("res: %e \n", rs);
     return yh;
 }
 
@@ -139,17 +186,17 @@ void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x,
     
     best.fitscore = -1;    
     int n,m,k, bestn, bestm, bestk;
-    LinearRegression lr;
     
-    int nMAX = aRMap[indexOfyColumn].isAR ? 1:3;
+    int nMAX = aRMap[indexOfyColumn].isAR ? 1:MAX_N+1;
         
+    Eigen::VectorXd theta;
     for(n=0; n < nMAX; n++)
-        for (m=0; m < 2; m++)
-            for (k=0; k  < 3; k++) {                
-                ARXModelLR(y, x,n,m,k, lr);
-                double fitscore = FitnessScore(x,y,n,m,k, lr.theta);
+        for (m=0; m <= MAX_M; m++)
+            for (k=0; k  <= MAX_K; k++) {                
+                ARXModelLR(y, x,n,m,k, theta);
+                double fitscore = FitnessScore(x,y,n,m,k, theta);
                 if ( fitscore > best.fitscore ) { 
-                    best.theta = lr.theta; 
+                    best.theta = theta; 
                     best.fitscore = fitscore; 
                     best.n=n; best.m=m; best.k=k;
                 }
@@ -347,18 +394,57 @@ void SplitRun(int n, MParams& p) {
 }
 //-------------------------------------------------------------------------------
 void GetMatrix(const CSV& csv, Eigen::MatrixXd & x, int getall=0, int uniq=3);
+//-------------------------------------------------------------------------------
+#include <getopt.h>
+void getopts(int argc, char **argv) {
+    fprintf(stderr, 
+            "INVX.EXE <options> time-series data \n"
+            "     -t *REQUIRED* time-series file \n"
+            "     -T number of threads (default: 16) \n"
+            "     -N MAX_N (default: 2) \n"
+            "     -M MAX_M (default: 1) \n"
+            "     -K MAX_K (default: 2) \n"
+            "     -s start columns\n"
+            "     -e end column \n"
+           );    
 
-int main_invx(int argc, char const *argv[]){
+    int c;
+    while ((c = getopt (argc, argv, "i:t:N:M:K:s:e:")) != -1){
+        opts[c] = optarg ? optarg : "-";
+    }
+    for (int i = optind; i < argc; i++)
+        opts[128+i] = argv[i];
+    
+    // Must have these options
+    if ( opts.find('t') == opts.end() ) {
+        fprintf(stderr, "*ERROR: Must provide time series file! \n");
+        abort();
+    }
+    
+    //Debug - print options
+    fprintf(stderr, "WILL USE OPTIONS:\n");
+    for ( map<char, any>::iterator it = opts.begin(); it != opts.end(); it++ ){
+        int hj=(it->first);
+        fprintf(stderr,"  -[%c] (%5d) [%s]\n", it->first, hj, it->second.data.c);
+    }
+}
+//-------------------------------------------------------------------------------
+int main_invx(int argc, char **argv){
     Watch w;
+    getopts(argc, argv); 
     if (argc <= 1){
-        printf("Ex: INVX.exe <csv-file> <#threads> <from-column> <to-column> MAX_N MAX_M MAX_K");
+        printf("Ex: INVX.exe <csv-file> <#threads> <from-column> <to-column> MAX_N MAX_M MAX_K\n");
         return 0;
     }
-    const char * file = (argc > 1) ? argv[1]: "../data/test1.csv";
-    int nThreads = (argc > 2) ? atoi(argv[2]): 16;
+    const char * file = getfopt('t',"");  // (argc > 1) ? argv[1]: "../data/test1.csv";
+    int nThreads = getfopt('T', 16);    // (argc > 2) ? atoi(argv[2]): 16;
     
-    int from = (argc > 3) ? atoi(argv[3]): 0;
-    int upto = (argc > 4) ? atoi(argv[4]): 1024 * 200;
+    int from = getfopt('s',0);          // (argc > 3) ? atoi(argv[3]): 0;
+    int upto = getfopt('e',200*1024);   // (argc > 4) ? atoi(argv[4]): 1024 * 200;
+    
+    MAX_N = getfopt('N',2);          // (argc > 3) ? atoi(argv[3]): 0;
+    MAX_M = getfopt('M',1);          // (argc > 3) ? atoi(argv[3]): 0;
+    MAX_K = getfopt('K',2);          // (argc > 3) ? atoi(argv[3]): 0;
     
     int ret;
     CSV df(file);

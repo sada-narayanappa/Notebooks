@@ -86,9 +86,7 @@ Eigen::VectorXd& RemoveColumn(Eigen::VectorXd& m, int colToRemove) {
 }
 
 //-------------------------------------------------------------------------
-LinearRegression::LinearRegression(){
-    fileName = NULL;
-    csvp = NULL;
+LinearRegression::LinearRegression(): fileName(NULL), csvp(NULL){
 }
 LinearRegression::LinearRegression(const char* f){
     fileName = strdup(f);
@@ -204,21 +202,21 @@ void LinearRegression::Dump() {
 }
 
 
-Eigen::VectorXd& LinearRegression::SVD( const Eigen::MatrixXd & x, const Eigen::VectorXd & y){
-    theta = x.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(y);
-    CalculateIntercept();
+const Eigen::VectorXd LinearRegression::SVD( const Eigen::MatrixXd & x, const Eigen::VectorXd & y){
+    const Eigen::VectorXd theta  = x.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(y);
+    //CalculateIntercept();
     return theta;
 }
 
-Eigen::VectorXd& LinearRegression::QR( const Eigen::MatrixXd & x, const Eigen::VectorXd & y){
-    theta = x.colPivHouseholderQr().solve(y);
-    CalculateIntercept();
+const Eigen::VectorXd LinearRegression::QR( const Eigen::MatrixXd & x, const Eigen::VectorXd & y){
+    const Eigen::VectorXd theta = x.colPivHouseholderQr().solve(y);
+    //CalculateIntercept();
     return theta;
 }
 
-Eigen::VectorXd& LinearRegression::Norm( const Eigen::MatrixXd & x, const Eigen::VectorXd & y){
-    theta = (x.transpose() * x).ldlt().solve(x.transpose() * y);
-    CalculateIntercept();
+const Eigen::VectorXd LinearRegression::Norm( const Eigen::MatrixXd & x, const Eigen::VectorXd & y){
+    const Eigen::VectorXd theta  = (x.transpose() * x).ldlt().solve(x.transpose() * y);
+    //CalculateIntercept();
     return theta;
 }
     

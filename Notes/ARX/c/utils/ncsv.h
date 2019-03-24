@@ -67,7 +67,9 @@ struct ncsv {
         }
         return ncols;
     }
-    void dump();
+    void dumphead(FILE * fd=stderr);
+    void dumprow(int i, FILE *fd=stderr);
+    void dump(FILE* fd=stderr);
     const char * Read(const char *file1, int nrows=1024*1024, const char *ignore="#");
     
     void ToInt(int column){

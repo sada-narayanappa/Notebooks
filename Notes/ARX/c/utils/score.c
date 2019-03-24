@@ -21,7 +21,23 @@ using namespace std;
 float ARModelThreshold = 0.7;
 
 typedef vector< vector<double> > ThetaType;
-map<char, string> opts;
+map<char, any> opts;
+
+any *getfopt(char o){
+    if (opts.find(o) != opts.end()){
+        return &opts[o];
+    }
+    return NULL;
+}
+const char* getfopt(char o, const char* def){
+    return opts.find(o) != opts.end() ? opts[o].data.c:def;
+}
+double getfopt(char o, double def){
+    return opts.find(o) != opts.end() ? atof(opts[o].data.c):def;
+}
+int getfopt(char o, int def){
+    return opts.find(o) != opts.end() ? atoi(opts[o].data.c):def;
+}
 //---------------------------------------------------------------------------------
 template<typename A, typename B>
 std::pair<B,A> flip_pair(const std::pair<A,B> &p){
@@ -38,6 +54,25 @@ std::multimap<B,A> flip_map(const std::map<A,B> &src){
 
 double predict3(const double *x, const double *y, 
                 int n, int m, int k, const vector<double> &theta, int t, double& rs) {
+    //long double yh = theta[n+m+1];
+    double yh = theta[n+m+1];
+    
+    for(int i=0; i <n; i++){
+        yh += y[t-n+i] * theta[n-1-i];
+        //printf("predict3 y++ %lf %lf %lf\n", y[t-n+i], theta[n-1-i], yh); 
+    }
+    for(int i=0; i < m+1; i++){
+        yh += x[t-k-i] * theta[i+n];
+        //printf("predict3 x++ %lf %lf %lf\n" , x[t-k-i], theta[i+n],yh);
+    }    
+    //long double rs1 = (y[t] - yh);
+    rs = (y[t] - yh);
+    //printf("res: %e \n", rs);
+    return yh;
+}
+
+double predict3(const double *x, const double *y, 
+                int n, int m, int k, const double *theta, int t, double& rs) {
     double yh = theta[n+m+1];
     
     for(int i=0; i <n; i++){
@@ -48,10 +83,11 @@ double predict3(const double *x, const double *y,
     }    
     rs = (y[t] - yh);
     return yh;
-}//---------------------------------------------------------------------------------
-void createTheta(const ncsv &csv, Eigen::MatrixXd & theta, vector< vector<double> > &mtheta){
+}
+
+//---------------------------------------------------------------------------------
+void createTheta(const ncsv &csv, vector< vector<double> > &mtheta){
     int nrows = csv.nrows;
-    theta.resize( 8, csv.nrows);
     mtheta.resize(csv.nrows, vector<double>(8, 0.));
     
     int column = csv.ncols-1;
@@ -61,14 +97,12 @@ void createTheta(const ncsv &csv, Eigen::MatrixXd & theta, vector< vector<double
             str++;
         int n = 0;
         while(*str) {
-            theta(n, r) = atof(str);
             mtheta[r][n]= atof(str);
             n++;
             while (*str && *str != ',') str++;
             if (*str == ',') str++;
         }
     }
-    //std::cout << theta.block(0,0,8,4) << endl;
 }
 
 #define IuName       0
@@ -109,7 +143,7 @@ struct BrokenPair{
         return lb;
     }
 };
-#define MAXBROKENS_TO_PRINT 5000
+int MAXBROKENS_TO_PRINT = 500;
 /*
 void FindScore(int t, double sumFit,
                const ncsv &model, Eigen::MatrixXd & xx, 
@@ -224,7 +258,7 @@ void FindScore1(int t, double sumFit,
                marray<int>& uIdx, marray<int>& yIdx ) {
     
     int n,m,k; 
-    double fitness, threshold; 
+    double fitness, threshold, corr; 
     const char *uName, *yName;
         
     double anomScore = 0;
@@ -240,14 +274,19 @@ void FindScore1(int t, double sumFit,
         n = model.data[In][i].data.i; 
         m = model.data[Im][i].data.i; 
         k = model.data[Ik][i].data.i;
-        uName = model.data[0][i].data.c;
-        yName = model.data[1][i].data.c;
+        uName = model.data[IuName][i].data.c;
+        yName = model.data[IyName][i].data.c;
         threshold = model.data[Ithreshold][i].data.d;
         fitness   = model.data[Ifitness][i].data.d;
+        corr   = model.data[Icorrelation][i].data.d;
+        if ( strcmp(yName, "FIC301.SV") !=0 || strcmp(uName, "QI301.Q") !=0 ) {
+            //continue;
+        }
+        if (corr <= -2.0)
+            continue;
+
         const vector<double> & theta1 = theta[i];
         
-        //int ui = colIdx[uName];
-        //int vi = colIdx[yName];
         int ui = uIdx[i];
         int vi = yIdx[i];
         
@@ -272,10 +311,21 @@ void FindScore1(int t, double sumFit,
             brknSensors[yName] += fitness;
             brknSensorsCount[uName] += 1;
             brknSensorsCount[yName] += 1;
+            
+            int debug=0;
+            if ( debug) {
+                printf("-->%d %d %s,%s, (%d,%d,%d), fit: %lf, thr: %e, cumscore: %lf\n",
+                           i, brknCount, uName, yName, n,m,k, fitness, threshold, anomScore);
+
+                for (int tt=0; tt < 6; tt++){
+                    printf("%f;", theta1[tt]);
+                }
+                printf("%lf %lf %f %e %e \n\n", x[t], y[t], yh, res, abs(res) - 1.1 * threshold);
+            }
         }
     }
     printf("=>%d,%d,%lf,%d,\"[",t,(int)adf.data[0][t],anomScore,brknCount);
-    if (opts.find('a') != opts.end()){
+    if (getfopt('a', (const char*) (NULL))) {
         printf("]\"\n");
         return;
     }
@@ -324,12 +374,13 @@ void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024
     const Eigen::VectorXd& mka = ma+ka;
     
     int maxLag = max(na.array().maxCoeff(), mka.array().maxCoeff());
+    
     start  = start < maxLag? maxLag: start;
     stop   = min(stop, adf.nRows);
     
     double sumFit = fitness.array().sum();
         
-    fprintf(stderr, "==>start: %d, stop: %d sumFit: %lf\n", start, stop, sumFit);
+    fprintf(stderr, "==>start: %d, stop: %d Normalize to Fit: %lf\n", start, stop, sumFit);
     //start = min(start, na.array().max(),  
     //cout << xx << endl;
     map<string, int> colIdx;
@@ -356,15 +407,11 @@ void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024
     }
     */
     vector<vector<double> > mtheta;
-    Eigen::MatrixXd theta;
-    createTheta(model, theta, mtheta);
-    //Eigen::MatrixXd cxx;
-    //GetMatrix(adf, cxx, 1, 0);
+    createTheta(model, mtheta);
     
     for (int t=start; t < stop; t++){
-        //FindScore(t, sumFit, model, xx, adf, cxx, edgeCounts, theta,colIdx );
         FindScore1(t, sumFit, model, adf, edgeCounts, mtheta,colIdx,uIdx, yIdx );
-        if (t>1024*1024) 
+        if (t> 1024*1024) 
             break;
     }
 }
@@ -380,54 +427,162 @@ Parameters:
 void getopts(int argc, char **argv) {
     fprintf(stderr, 
             "SCORE.EXE <options> model-file inference-file \n"
-            "     -f forward fitness score \n"
-            "     -b both fitness score must be above to consider \n"
+            "     -i *REQUIRED* model-file \n"
+            "     -t *REQUIRED* time-series file \n"
+            "     -E filter threshold \n"
+            "     -B filter both(any) fitness score must be atleast this much \n"
+            "     -O output filtered model \n"
             "     -s start row in inference file\n"
             "     -e end row in inference file \n"
-            "     -i model-file \n"
-            "     -t time-series file \n"
             "     -a Print only Anomaly Score \n"
             "     -A Amount of Broken Pairs to Return \n"
+            "     -W *IGNORED* window size \n"
            );    
 
     int c;
-    while ((c = getopt (argc, argv, "fbAas:e:i:t:")) != -1){
+    while ((c = getopt (argc, argv, "i:t:E:B:OseaAW:")) != -1){
         opts[c] = optarg ? optarg : "-";
     }
     for (int i = optind; i < argc; i++)
         opts[128+i] = argv[i];
     
+    // Must have these options
     if ( opts.find('i') == opts.end() || opts.find('t') == opts.end() ) {
         fprintf(stderr, "*ERROR: Must provide model file and time series file! \n");
         abort();
     }
+    
+    //Debug - print options
     fprintf(stderr, "WILL USE OPTIONS:\n");
-    for ( map<char, string>::iterator it = opts.begin(); it != opts.end(); it++ ){
+    for ( map<char, any>::iterator it = opts.begin(); it != opts.end(); it++ ){
         int hj=(it->first);
-        fprintf(stderr,"  -[%c] (%5d) [%s]\n", it->first, hj, it->second.c_str());
+        fprintf(stderr,"  -[%c] (%5d) [%s]\n", it->first, hj, it->second.data.c);
     }
 }
+/*-----------------------------------------------------------------------------------
+ MODEL FILTERS
+*/
+struct filter_d2 {double f; int i;};
+void filter(ncsv &model){
+    double ei = getfopt('E', 1.0); 
+    double bo = getfopt('B', 1.0);
+    
+    if ( ei >= 1 || bo <= 0 || bo >= ei) {
+        fprintf(stderr, "*ERROR: opt[E] must be >= opt[B] ! \n");
+        abort();
+    }
+    map<string, double> keep;
+    map<string, filter_d2> ques;
+    double k[2];
+    for(int i=0; i < model.nrows; i++) {
+        const char * uName = model.data[0][i].data.c;
+        const char * yName = model.data[1][i].data.c;
+        double f1 = model.data[Ifitness][i].data.d;
+
+        string uv = string(uName) + ","+yName;
+        string vu = string(yName) + ","+uName;
+
+        if (ques.find(vu) == ques.end()){
+            filter_d2 d; d.f=f1; d.i = i;
+            ques[uv]=d;
+            continue;
+        }
+        double f2 = ques[vu].f;
+        double ii = ques[vu].i;
+        ques.erase (vu);
+        
+        if ( f1 < bo or f2 < bo) {
+            model.data[Icorrelation][ii].data.d = -2;   //# pass # Remove uv, vu
+            model.data[Icorrelation][i].data.d  = -2; 
+        }
+        else if ( f1 < ei and f2 < ei) {
+            model.data[Icorrelation][ii].data.d = -2;   //# pass # Remove uv, vu
+            model.data[Icorrelation][i].data.d  = -2; 
+            //model.data[Ifitness][ii] = 0;   //# pass # Remove uv, vu
+            //model.data[Ifitness][i] = 0; 
+        }
+        else if ( f1 > f2) {
+            //keep[uv]=f1;
+            model.data[Icorrelation][ii].data.d = -2;   //# pass # Remove uv, vu
+        }
+        else {
+            //keep[vu]=f2;
+            model.data[Icorrelation][i].data.d = -2;   //# pass # Remove uv, vu
+        }
+    }
+    for ( map<string, filter_d2>::iterator it = ques.begin(); it != ques.end(); it++ ){
+        if (it->second.f < ei) {
+            int idx = it->second.i;
+            model.data[Icorrelation][idx].data.d = -2;   //# pass # Remove uv, vu
+        }
+    }
+    int fil=0;
+    
+    if (!getfopt('O', (const char*) (NULL))) {
+        return;
+    }
+    FILE *file;
+    char ffile[4*1024];
+    sprintf(ffile, "%s_f%f_%f_filter.csv",model.fileName,bo,ei);
+    file = fopen(ffile, "r");
+    if (file != NULL)  {
+        printf("Filter file Already Exists not doing anything...");
+        fclose(file);
+        return;
+    }
+    fclose(file);
+    file = fopen(ffile, "w");
+    
+    model.dumphead(file);
+    for(int j=0; j < model.nrows; j++) {
+        if ( model.data[Icorrelation][j].data.d <= -2) {
+            fprintf(file, "#");
+            //fil++;
+        }
+        model.dumprow(j,file);                  
+    }
+    fclose(file);
+    fprintf(file,"#%d x %d filtered: %d%%(%f), : %d\n", model.nrows, model.ncols, fil, 
+                   (1.0 * fil/model.nrows), (model.nrows-fil));
+}
+
+
+void test() {
+    any a1("Sada");
+    any a2(10);
+    any a3(11.0);
+    print("%s %d %f \n",(const char*)a1, (int)a2, (double)a3);
+}
 int main(int argc, char **argv){
-    getopts(argc, argv);
+    //test(); return 0;
+    getopts(argc, argv); 
+    
     Watch w;
     const char * mfile;
     const char * cfile;
     mfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/normal1.csv.model.csv";
     cfile= "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/ab1.csv";
-    mfile = opts['i'].c_str();
-    cfile = opts['t'].c_str();
+    mfile = opts['i'];
+    cfile = opts['t'];
 
     ncsv model;  
     model.Read(mfile);
-    model.ToDouble(2);
-    model.ToInt(4);
-    model.ToInt(5);
-    model.ToInt(6);
-    model.ToDouble(7);
-    
-    //model.dump();
+    model.ToDouble(Ifitness);
+    model.ToDouble(Icorrelation);
+    model.ToInt(In);
+    model.ToInt(Im);
+    model.ToInt(Ik);
+    model.ToDouble(Ithreshold);
+       
+    if ( getfopt('E') || getfopt('B') ){
+        printf ("#Filtering the model ... \n");
+        filter(model);
+    }
+    //model.dump(); return 0;
     CSV df(cfile);
-    FindResiduals(model, df);
+    
+    MAXBROKENS_TO_PRINT  = getfopt('A', 5000);
+    FindResiduals(model, df, getfopt('s',0), getfopt('e',1024*1024));
     w.Stop("## Time to Complete: ");
     return 0;
     df.Dump();

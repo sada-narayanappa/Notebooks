@@ -18,7 +18,7 @@ using namespace std;
 
 
 //-------------------------------------------------------------------------------
-int main(int argc, char const *argv[]){
+int main(int argc, char **argv){
     main_invx(argc, argv);
     //test1();
 }

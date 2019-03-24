@@ -6,6 +6,8 @@
 #define min(x,y) ( ((x) < (y))? (x): (y))
 
 template<class T> struct marray {
+private: 
+    marray(const marray<T> &p2) {}
 public:
     int n;
     int capacity;
@@ -20,6 +22,7 @@ public:
         n = 0;
         delete [] a;
     }
+    
     void Dump() {
         printf("Length %d: capacity: %d, First few elements: ", n, capacity);
         for(int i=0 ; i < min(10,n); i++) {
@@ -52,7 +55,6 @@ public:
         return a[i];  
     }
     const T& operator[](int i) const { return a[i]; }
-    
     marray<T>& operator = (const marray &o) { 
         if (this == &o)
             return *this;

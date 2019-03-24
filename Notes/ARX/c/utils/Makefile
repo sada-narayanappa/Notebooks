@@ -14,8 +14,8 @@ INCLUDES =  -I".." `pkg-config --cflags eigen3`
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = -lpcap 
-OBJECTS  =  linreg.o CSV.o model.o LR.o CSVUtils.o main.o invx.o
-OBJECTS1 =  CSV.o score.o model.o ncsv.o
+OBJECTS  =  linreg.o CSV.o LR.o CSVUtils.o main.o invx.o
+OBJECTS1 =  CSV.o score.o ncsv.o
 DEPENDENCIES = main.o score.o 
 CFLAGS = -g -O2 -Wall -Wno-unused
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
@@ -50,10 +50,9 @@ main.o: main.c
 linreg.o: linreg.c linreg.h
 CSV.o: CSV.c CSV.h
 ncsv.o: ncsv.c ncsv.h any.h
-model.o: model.c linreg.h
 LR.o: LR.c LR.h
-invx.o: invx.c invx.h
-score.o: score.c invx.h
+invx.o: invx.c invx.h any.h
+score.o: score.c invx.h any.h
 CSVUtils.o: CSVUtils.c csv.h
 
 clean:

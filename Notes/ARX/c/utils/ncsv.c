@@ -40,24 +40,33 @@ const char * ncsv::Read(const char *file1, int nrows, const char *ignore){
     return "";
 }
 
-void ncsv::dump(){
-    for (int i=0; i < ncols; i++)  printf("%s%s", head[i].data.c,(i==ncols-1)?"":",");printf("\n");
-    for (int j=0; j < nrows; j++){
-        int nd = ncols;
-        for (int i=0; i < nd; i++){
-            if (data[i][j].type == TYPECHAR)
-                printf("%s%s", data[i][j].data.c, (i == nd-1) ?"":"," );
-            else if (data[i][j].type == TYPEINT)
-                printf("%d%s", data[i][j].data.i, (i == nd-1) ?"":"," );
-            else if (data[i][j].type == TYPEDOUBLE)
-                printf("%f%s", data[i][j].data.d, (i == nd-1) ?"":"," );
-            else
-                printf("%s%s", "UKNOWN-TYPE", (i == nd-1) ?"":"," );
-            //printf("%d%s", data[i][j].type, (i == ncols-1) ?"":"," );
-        }
-        printf("\n");
+void ncsv::dumphead(FILE* fd){
+    for (int i=0; i < ncols; i++)  
+        fprintf(fd,"%s%s", head[i].data.c,(i==ncols-1)?"":",");
+    fprintf(fd,"\n");
+}
+void ncsv::dumprow(int row, FILE *fd) {
+    int j = row;
+    int nd = ncols;
+    for (int i=0; i < nd; i++){
+        if (data[i][j].type == TYPECHAR)
+            fprintf(fd,"%s%s", data[i][j].data.c, (i == nd-1) ?"":"," );
+        else if (data[i][j].type == TYPEINT)
+            fprintf(fd,"%d%s", data[i][j].data.i, (i == nd-1) ?"":"," );
+        else if (data[i][j].type == TYPEDOUBLE)
+            fprintf(fd,"%f%s", data[i][j].data.d, (i == nd-1) ?"":"," );
+        else
+            fprintf(fd,"%s%s", "UKNOWN-TYPE", (i == nd-1) ?"":"," );
+        //printf("%d%s", data[i][j].type, (i == ncols-1) ?"":"," );
     }
-    printf("Size: %d x %d\n", nrows, ncols);
+    fprintf(fd,"\n");
+}
+void ncsv::dump(FILE* fd){
+    dumphead(fd);
+    for (int j=0; j < nrows; j++){
+        dumprow(j,fd);
+    }
+    fprintf(fd, "Size: %d x %d\n", nrows, ncols);
 }
 
 void ncsv::AddColumn(const char* c, void ** values){

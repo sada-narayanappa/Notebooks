@@ -33,9 +33,7 @@ public:
         if ( csvp)
             delete csvp;
     }
-
     void Dump();
-    
     
     static Eigen::VectorXd Mean( Eigen::MatrixXd & m );
     static Eigen::VectorXd Std( Eigen::MatrixXd & m, const Eigen::VectorXd & mean );
@@ -50,9 +48,9 @@ public:
                    int num_iters = 1024 * 50 , int batch=10, 
                    double alpha=0.005001, double eps=1e-7);
     
-    Eigen::VectorXd& SVD( const Eigen::MatrixXd & x, const Eigen::VectorXd & y);
-    Eigen::VectorXd& QR( const Eigen::MatrixXd & x, const Eigen::VectorXd & y);
-    Eigen::VectorXd& Norm( const Eigen::MatrixXd & x, const Eigen::VectorXd & y);
+    static const Eigen::VectorXd SVD( const Eigen::MatrixXd & x, const Eigen::VectorXd & y);
+    static const Eigen::VectorXd QR( const Eigen::MatrixXd & x, const Eigen::VectorXd & y);
+    static const Eigen::VectorXd Norm( const Eigen::MatrixXd & x, const Eigen::VectorXd & y);
 };
 
 #endif

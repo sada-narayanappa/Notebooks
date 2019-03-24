@@ -17,52 +17,70 @@ struct any {
         const char *c;
         void *  v;
     }data;
-    int type;
-    int deletePtr;
+    short int type;
+    short int deletePtr;
     
-    any(): type(TYPECHAR), deletePtr(0){data.c=NULL;}  
-    any(const char * c, int del=0) {
-        //data.c = c; deletePtr = del;
+    any()         : type(TYPECHAR),   deletePtr(0){data.c=NULL;}  
+    any(int i    ): type(TYPEINT),    deletePtr(0){data.i=i;}  
+    any(double d ): type(TYPEDOUBLE), deletePtr(0){data.d=d;}  
+    any(const any& o){
+        deletePtr = o.deletePtr;
+        type = o.type;
+        data = o.data;
+        if ( !deletePtr )
+            return;
+        data.c = strdup(data.c);
     }
+    any(const char * c, int makeCopyAndDelete=0):type(TYPECHAR),deletePtr(makeCopyAndDelete) {
+        if(makeCopyAndDelete){
+            char * cc = strdup(c);
+            set(cc, TYPECHAR);
+            if(type != TYPECHAR){
+                printf("*** Programming error, cannot copy and type!=TYPECHAR\n");
+                abort();
+            }
+        } else {
+            set(c, TYPECHAR);
+        }
+    }
+    ~any(){
+        if(deletePtr && data.c)
+            delete data.c;
+    };
+    //~~~~~~~~~ Operators
+    operator double const ()        { return data.d; }
+    operator int const ()           { return data.i; }
+    operator const char * const ()  { return data.c; }
+    int operator == (const any &o)  { return o.type == type && strcmp(o.data.c, data.c)==0; }
+    int operator == (const char *c) { return strcmp(c, data.c)==0; }
+    //~~~~~~~~~ Other funcs
     void ToInt() {
-        if ( type == TYPEINT)          return;
-        else if( type == TYPEDOUBLE)   data.i = (int) data.d;
-        else if( type == TYPECHAR  )   data.i = atoi(data.c);
-        
+        switch (type){
+            case TYPECHAR:   data.i = atoi(data.c); break;
+            case TYPEDOUBLE: data.i = (int)(data.d); break;
+        }
         type = TYPEINT;
     }
     void ToDouble() {
-        if ( type == TYPEDOUBLE)    return;
-        else if( type == TYPEINT )  data.d = (double) data.i;
-        else if( type == TYPECHAR ) data.d = atof(data.c);
+        switch (type){
+            case TYPECHAR:   data.d = atof(data.c); break;
+            case TYPEINT:    data.d = (double)(data.i); break;
+            case TYPEDOUBLE: break;
+        }
         type = TYPEDOUBLE;
     }    
-    void set(void *v){
-        data.v = v;
-        type = TYPEVOID;
-    }
-    void set(double d){
-        data.d = d;
-        type = TYPEDOUBLE;
-    }
+    void set(void *v ) {  data.v = v; type = TYPEVOID;   }
+    void set(double d) {  data.d = d; type = TYPEDOUBLE; }
+    
     const char * set(const char* d, int t= TYPECHAR){
-        data.c = d;
-             if (t == 0 )  { data.i = atof(d); }
-        else if (t == 1 )  { data.d = atof(d);}
+        data.c = d; 
         type =t;
+        switch (type){
+            case TYPECHAR:   break;
+            case TYPEINT:    data.i = atoi(data.c); break;
+            case TYPEDOUBLE: data.d = atof(data.c); break;
+        }
         return d;
     }
-    const char * tostring(char *buff = NULL) {
-        const char * ret = buff;
-        switch (type) {
-            case TYPEINT:    sprintf(buff,"%d", data.i);  break;
-            case TYPEDOUBLE: sprintf(buff,"%lf", data.d); break;
-            case TYPECHAR:   ret = data.c; break;
-            case TYPEVOID:   sprintf(buff,"Void*: %p", data.v); break;
-            default:
-               sprintf(buff,"%s", "UKNOWN"); break;
-        }
-        return ret;
-    }    
 };
 #endif

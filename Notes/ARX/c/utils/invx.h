@@ -98,9 +98,7 @@ struct Best{
 };
 
 int Regressors (CONSTEV y, CONSTEV x, int n, int m, int k, Eigen::MatrixXd& r);
-void ARXModelLR(CONSTEV y, CONSTEV x, int n, int m, int k, LinearRegression& lr);
-double predict3(CONSTEV x, CONSTEV y, 
-                int n, int m, int k,Eigen::VectorXd& theta, double t, double& yh, double& rs);
+void ARXModelLR(CONSTEV y, CONSTEV x, int n, int m, int k, Eigen::VectorXd& lr);
 double FitnessScore(CONSTEV x, CONSTEV y, 
                   int n, int m, int k, Eigen::VectorXd& theta);
 double ComputeResid(CONSTEV y, CONSTEV x, 
@@ -113,6 +111,6 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
 
 void* runINVX(void *inp);
 void SplitRun(int n, MParams& p);
-int main_invx(int argc, char const *argv[]);
+int main_invx(int argc, char **argv);
 
 #endif
