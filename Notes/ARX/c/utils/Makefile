@@ -14,7 +14,7 @@ INCLUDES =  -I".." `pkg-config --cflags eigen3`
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = -lpcap 
-OBJECTS  =  linreg.o CSV.o LR.o CSVUtils.o main.o invx.o
+OBJECTS  =  CSV.o LR.o CSVUtils.o main.o invx.o
 OBJECTS1 =  CSV.o score.o ncsv.o
 DEPENDENCIES = main.o score.o 
 CFLAGS = -g -O2 -Wall -Wno-unused
@@ -47,7 +47,6 @@ $(PROGRAMS1): $(OBJECTS1) $(DEPENDENCIES)
 	$(LINK) $(LDFLAGS) $(OBJECTS1) $(LDADD) $(LIBS)
 
 main.o: main.c
-linreg.o: linreg.c linreg.h
 CSV.o: CSV.c CSV.h
 ncsv.o: ncsv.c ncsv.h any.h
 LR.o: LR.c LR.h
