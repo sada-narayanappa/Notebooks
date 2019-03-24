@@ -9,7 +9,6 @@
 
 void GetMatrix(const CSV& csv, Eigen::MatrixXd & x, int getall=0, int uniq=3);
 
-
 //EigenUtilities:
 void p(const Eigen::VectorXd& m, const char* str, int all) {
     printf("%s #%ld :", str, m.size());
@@ -95,7 +94,6 @@ LinearRegression::LinearRegression(const char* f){
     csvp->Dump();
 }
 
-
 Eigen::VectorXd LinearRegression::Mean( Eigen::MatrixXd & m ){
     Eigen::VectorXd mean( m.cols() );
     for( int i = 0; i < m.cols(); ++i ){
@@ -114,7 +112,6 @@ Eigen::VectorXd LinearRegression::Std( Eigen::MatrixXd & m, const Eigen::VectorX
     }
     return std;
 }
-
  
 Eigen::VectorXd& LinearRegression::Normalize( Eigen::MatrixXd & x, int doMean, int doStd ){
     mean = Mean( x );
