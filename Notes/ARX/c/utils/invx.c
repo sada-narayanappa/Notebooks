@@ -201,7 +201,7 @@ void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x,
                     best.n=n; best.m=m; best.k=k;
                 }
             }
-    best.threshold =ComputeResid(y, x, best.theta, best.n, best.m, best.k);
+    best.threshold = ComputeResid(y, x, best.theta, best.n, best.m, best.k);
 }
 double StdDev(const Eigen::VectorXd& v) {
     int n = v.rows()-1;
