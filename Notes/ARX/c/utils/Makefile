@@ -12,7 +12,7 @@ CPPFLAGS =
 LDFLAGS = 
 LIBS = -lpcap  -lpthread
 OBJECTS  =  CSV.o LR.o CSVUtils.o main.o invx.o
-DEPENDENCIES = main.o score.o 
+DEPENDENCIES = main.o
 CFLAGS = -g -O2 -Wall -Wno-unused
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -54,4 +54,4 @@ CSVUtils.o: CSVUtils.c CSV.h
 
 
 clean:
-	rm -f *.o $(PROGRAMS) $(PROGRAMS1) INV.EXE SCORE.EXE core *.core OUT*
+	rm -f *.o $(PROGRAMS) $(PROGRAMS1) INVX.EXE SCORE.EXE core *.core OUT*

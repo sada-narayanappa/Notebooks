@@ -19,7 +19,7 @@ DEPENDENCIES = score.o
 CFLAGS = -g -O2 -Wall -Wno-unused
 COMPILE = $(CC) -static $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 CCLD = $(CC)
-AM_CFLAGS=-static-libstdc++ -static-libgcc
+#AM_CFLAGS=-static-libstdc++ -static-libgcc
 LINK = $(CCLD)  $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 
 all: $(PROGRAMS1)
