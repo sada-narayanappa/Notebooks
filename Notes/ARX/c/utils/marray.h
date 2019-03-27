@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#define min(x,y) ( ((x) < (y))? (x): (y))
+#define minm(x,y) ( ((x) < (y))? (x): (y))
 
 template<class T> struct marray {
 private: 
@@ -25,7 +25,7 @@ public:
     
     void Dump() {
         printf("Length %d: capacity: %d, First few elements: ", n, capacity);
-        for(int i=0 ; i < min(10,n); i++) {
+        for(int i=0 ; i < minm(10,n); i++) {
             printf("%.2f ", a[i]);
         }
         printf("%s \n", ( n > 10)? "...":"");

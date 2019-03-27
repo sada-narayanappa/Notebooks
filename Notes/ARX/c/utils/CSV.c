@@ -76,7 +76,7 @@ void CSV::Dump(int numRows) {
     int minColumns=10;
     for (int i=0; i < numRows; i++) {
         printf("=>%d: ",i);
-        for (int j=0; j < min(minColumns,nColumns); j++) {
+        for (int j=0; j < minm(minColumns,nColumns); j++) {
             printf("%3.2f,", data[j][i]);
         }
         if ( nColumns > minColumns)
@@ -86,7 +86,7 @@ void CSV::Dump(int numRows) {
     printf("...(%d ... %d) not print ;)\n", numRows, nRows-numRows-1);    
     for (int i=nRows-numRows; i < nRows ; i++) {
         printf("=>%d: ",i);
-        for (int j=0; j < min(minColumns,nColumns); j++) {
+        for (int j=0; j < minm(minColumns,nColumns); j++) {
             printf("%3.2f,", data[j][i]);
         }
         if ( nColumns > minColumns)

@@ -58,7 +58,7 @@ Eigen::MatrixXd& RemoveColumn(Eigen::MatrixXd& m, int colToRemove) {
         colToRemove = c = nCols+ c+1;
     }
     //cout << "Removing Column " << colToRemove <<endl;    
-    if( colToRemove < nCols )
+    if( colToRemove < (int)nCols )
         m.block(0,c,nRows,nCols-c) = m.block(0,c+1,nRows,nCols-c);
     m.conservativeResize(nRows,nCols);
     return m;

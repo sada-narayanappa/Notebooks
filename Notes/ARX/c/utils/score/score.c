@@ -6,16 +6,18 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <limits>
+#include <cmath>
+#include <algorithm>
 
 #include "Common.h"
 #include "Watch.h"
 #include "marray.h"
-#include "invx.h"
 #include "CSV.h"
 #include "ncsv.h"
-#include "LR.h"
-#include <unistd.h> 
-#include <pthread.h> 
+
+
+
 using namespace std;
 
 float ARModelThreshold = 0.7;
@@ -114,19 +116,7 @@ void createTheta(const ncsv &csv, vector< vector<double> > &mtheta){
 #define Ik           6
 #define Ithreshold   7
 #define Itheta       8
-void ModelMatrix(const ncsv& csv, Eigen::MatrixXd & x){
-    x.resize( csv.nrows, csv.ncols );
-    for (int i=0; i < 8; i++)
-        for (int j=0; j < csv.nrows; j++){
-            switch(i){
-                case 0: 
-                case 1: x(j,i) = (long)csv.data[i][j].data.c; break;
-                case 2: 
-                case 7: x(j,i) = csv.data[i][j].data.d; break;
-                default:x(j,i) = csv.data[i][j].data.i; break;
-            }
-        }
-}
+
 struct BrokenPair{
     const char * u;
     const char * v;
@@ -144,111 +134,7 @@ struct BrokenPair{
     }
 };
 int MAXBROKENS_TO_PRINT = 500;
-/*
-void FindScore(int t, double sumFit,
-               const ncsv &model, Eigen::MatrixXd & xx, 
-               const CSV  &adf,   Eigen::MatrixXd & cxx, 
-               map<string, int> &edgeCounts, Eigen::MatrixXd& theta,
-               map<string, int> &colIdx) {
-    
-    int n,m,k; 
-    double fitness, threshold; 
-    const char *uName, *yName;
-    
-    const Eigen::VectorXd& fitnessA = xx.col(Ifitness);
-    const Eigen::VectorXd& na = xx.col(In);
-    const Eigen::VectorXd& ma = xx.col(Im);
-    const Eigen::VectorXd& ka = xx.col(Ik);
-    const Eigen::VectorXd& thresh = xx.col(Ithreshold);
-    
-    double anomScore = 0;
-    int    brknCount = 0;
-    
-    map<string, double>  brknPairsSig;
-    map<string, double>  brknPairsRes;
-    map<string, double>  brknSensors;
-    map<string, int>     brknSensorsCount;
-    
-    int debug = 0;
-    for(int i=0; i < model.nrows; i++) {
-        n = na[i]; m = ma[i]; k = ka[i];
-        uName = model.data[0][i].data.c;
-        yName = model.data[1][i].data.c;
-        threshold = thresh[i];
-        fitness   = fitnessA[i];
-        const Eigen::VectorXd& theta1 = theta.col(i);
-        
-        int ui = colIdx[uName];
-        int vi = colIdx[yName];
-        if (!ui || !vi){
-            printf("Column Index not valid %s:%d %s:%d \n",uName,ui, yName,vi);
-            continue;
-        }
-        const Eigen::VectorXd& x = cxx.col(ui-1);
-        const Eigen::VectorXd& y = cxx.col(vi-1);
-        
-        double res;
-        double yh = predict3(x, y, n,m,k, theta1, t,res);
-        double sigf = (threshold) ? abs(res)/threshold : INFINITY;
-        
-        if ( debug) {
-            printf("%d %s,%s, (%d,%d,%d), fit: %lf, thr: %lf\n",
-                       i, uName, yName, n,m,k, fitness, threshold);
-            cout << theta1 << endl;
-            printf("%lf %lf %lf %lf \n", x[t], y[t], yh, res);
-        }
-        if ( abs(res) > 1.1 * threshold ){
-            anomScore += fitness;
-            brknCount++;
-            string ks = string(uName)+","+yName;
-            brknPairsSig[ks]= sigf;
-            brknPairsRes[ks]= res;
-                
-            brknSensors[uName] += fitness;
-            brknSensors[yName] += fitness;
-            brknSensorsCount[uName] += 1;
-            brknSensorsCount[yName] += 1;
-            
-            if ( debug) {
-                printf("%d %s,%s, (%d,%d,%d), fit: %lf, thr: %lf\n",
-                           brknCount, uName, yName, n,m,k, fitness, anomScore);
 
-                printf("%d %s,%s, (%d,%d,%d), fit: %lf, thr: %lf\n",
-                           i, uName, yName, n,m,k, fitness, threshold);
-                cout << theta1 << endl;
-                printf("%lf %lf %lf %lf \n", x[t], y[t], yh, res);
-            }
-        }
-    }
-    printf("%d,%d,%lf,%d,\"[",t,(int)cxx(t,0),anomScore,brknCount);
-    char buff[128];
-    int i =0;
-    //Sort Pairs & sensors
-    multimap<double, string> dstp = flip_map(brknPairsSig);
-    for (multimap<double, string>::reverse_iterator it=dstp.rbegin(); it != dstp.rend(); it++){
-        const char * pr = it->second.c_str();
-        double res = brknPairsRes[it->second];
-        printf("[%s,%f,%f],", pr, res, it->first);
-        if ( i++ > MAXBROKENS_TO_PRINT)
-            break;
-    }
-    printf("]\",\"[");
-    i=0;
-    for ( map<string, double>::iterator it = brknSensors.begin(); it != brknSensors.end(); it++ ){
-        brknSensors[it->first] = brknSensors[it->first]/edgeCounts[it->first];
-        //brknSensors[it->first] /= edgeCounts[it->first];
-        double v = it->second / edgeCounts[it->first];
-        //printf("[%s,%lf,%d],",it->first.c_str(), v, brknSensorsCount[it->first]);
-    }
-    multimap<double, string> dst = flip_map(brknSensors);
-    for (multimap<double, string>::reverse_iterator it=dst.rbegin(); it != dst.rend(); it++){
-        printf("[%s,%lf,%d],",it->second.c_str(), it->first, brknSensorsCount[it->second]);
-        if ( i++ > MAXBROKENS_TO_PRINT)
-            break;
-    }
-    printf("]\"\n");
-}
-*/
 void FindScore1(int t, double sumFit,
                const ncsv &model,
                const CSV  &adf,   
@@ -298,9 +184,9 @@ void FindScore1(int t, double sumFit,
         const double * y = adf.data[vi-1].a;
         double res;
         double yh = predict3(x, y, n,m,k, theta1, t,res);
-        double sigf = (threshold) ? abs(res)/threshold : INFINITY; 
+        double sigf = (threshold) ? std::abs(res)/threshold : std::numeric_limits<int>::max(); 
         
-        if ( abs(res) > 1.1 * threshold ){
+        if ( std::abs(res) > 1.1 * threshold ){
             anomScore += fitness;
             brknCount++;
             string ks = string(uName)+","+yName;
@@ -320,7 +206,7 @@ void FindScore1(int t, double sumFit,
                 for (int tt=0; tt < 6; tt++){
                     printf("%f;", theta1[tt]);
                 }
-                printf("%lf %lf %f %e %e \n\n", x[t], y[t], yh, res, abs(res) - 1.1 * threshold);
+                printf("%lf %lf %f %e %e \n\n", x[t], y[t], yh, res, std::abs(res) - 1.1 * threshold);
             }
         }
     }
@@ -332,13 +218,7 @@ void FindScore1(int t, double sumFit,
     
     char buff[128];
     int i =0;
-    //Sort Pairs & sensors
-    /*
-    for(list<BrokenPair>::iterator it = brknPairs.begin(); it != brknPairs.end(); it++,i++){
-        printf("[%s],",(it)->dump(buff));
-        if ( i++ > MAXBROKENS_TO_PRINT) break;
-    }
-    */
+    
     multimap<double, string> dstp = flip_map(brknPairsSig);
     for (multimap<double, string>::reverse_iterator it=dstp.rbegin(); it != dstp.rend(); it++){
         const char * pr = it->second.c_str();
@@ -363,23 +243,36 @@ void FindScore1(int t, double sumFit,
     }
     printf("]\"\n");
 }
+//------------------------------------------------------------------------------
+int dmax(const ncsv &model, int idx1, int idx2){
+    int ret = -1;
+    for (int i=0; i < model.nrows; i++){
+        int s1 = model.data[idx1][i].data.i;
+        if ( idx2 >= 0)
+            s1 += model.data[idx2][i].data.i;
+        ret = MAX(ret, s1);
+    }
+    return ret;
+}
+double dsum(const ncsv &model, int idx){
+    double ret = 0.0;
+    for (int i=0; i < model.nrows; i++){
+        ret +=  model.data[idx][i].data.d;
+    }
+    return ret;
+}
 
 void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024*1024){
-    Eigen::MatrixXd xx;
-    ModelMatrix(model, xx);
-    const Eigen::VectorXd& fitness = xx.col(Ifitness);
-    const Eigen::VectorXd& na = xx.col(In);
-    const Eigen::VectorXd& ma = xx.col(Im);
-    const Eigen::VectorXd& ka = xx.col(Ik);
-    const Eigen::VectorXd& mka = ma+ka;
     
-    int maxLag = max(na.array().maxCoeff(), mka.array().maxCoeff());
+    int nmax = dmax(model, In, -1); 
+    int mkmax= dmax(model, Im, Ik);  
+    double sumFit  = dsum (model, Ifitness);
+   
+    int maxLag = max(nmax, mkmax);
     
     start  = start < maxLag? maxLag: start;
     stop   = minm(stop, adf.nRows);
     
-    double sumFit = fitness.array().sum();
-        
     fprintf(stderr, "==>start: %d, stop: %d Normalize to Fit: %lf\n", start, stop, sumFit);
     //start = minm(start, na.array().max(),  
     //cout << xx << endl;

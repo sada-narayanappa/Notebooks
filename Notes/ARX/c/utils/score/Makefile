@@ -1,25 +1,28 @@
 # Modified for tcp migration project
+
 SHELL = /bin/sh
 
 OS=$(shell uname -s)
 CC = g++
 
-PROGRAMS = INVX.EXE_$(OS)
+#SOURCES = datalink.c flow.c main.c tcpip.c tcp.c util.c sysdep.h tcpmig.h
+#CONFIG_HEADER = conf.h
+PROGRAMS1 = SCORE.EXE_$(OS)
 
 DEFS = -DHAVE_CONFIG_H -I.
-INCLUDES =  -I".." `pkg-config --cflags eigen3`
+INCLUDES =  -I".."
 CPPFLAGS = 
 LDFLAGS = 
-LIBS = -lpcap  -lpthread
-OBJECTS  =  CSV.o LR.o CSVUtils.o main.o invx.o
-DEPENDENCIES = main.o score.o 
+#LIBS = -lpcap  -lpthread
+OBJECTS1 =  CSV.o score.o ncsv.o
+DEPENDENCIES = score.o 
 CFLAGS = -g -O2 -Wall -Wno-unused
-COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
+COMPILE = $(CC) -static $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-CLINKS = echo ln -s $@ ${@%.*}
+AM_CFLAGS=-static-libstdc++ -static-libgcc
+LINK = $(CCLD)  $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 
-all: $(PROGRAMS) CREATE_LINKS
+all: $(PROGRAMS1)
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
 
@@ -35,21 +38,15 @@ all: $(PROGRAMS) CREATE_LINKS
 .S.o:
 	$(COMPILE) -c $<
 
-$(PROGRAMS): $(OBJECTS) CSVUtils.o $(DEPENDENCIES)
-	@rm -f $(PROGRAMS)
-	$(LINK) $(LDFLAGS) $(OBJECTS) $(LDADD) $(LIBS)
-
 $(PROGRAMS1): $(OBJECTS1) $(DEPENDENCIES)
 	@rm -f $(PROGRAMS1)
 	$(LINK) $(LDFLAGS) $(OBJECTS1) $(LDADD) $(LIBS)
 
-CREATE_LINKS: $(PROGRAMS)
-	ln -s  $(PROGRAMS) INVX.EXE
 
 main.o: main.c
 CSV.o: CSV.c CSV.h
-LR.o: LR.c LR.h
-invx.o: invx.c invx.h any.h
+ncsv.o: ncsv.c ncsv.h any.h
+score.o: score.c any.h
 CSVUtils.o: CSVUtils.c CSV.h
 
 

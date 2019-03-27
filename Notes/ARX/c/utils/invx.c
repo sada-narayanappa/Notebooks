@@ -296,7 +296,7 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             nvars++;
         }
     }
-    (ofile !=stdout)? fclose(ofile) : NULL;
+    if (ofile !=stdout) fclose(ofile);
 }
 //-------------------------------------------------------------------------------
 void Test1(const char * file, const CSV& df,const Eigen::MatrixXd& xx, 
