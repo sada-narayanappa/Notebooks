@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include "marray.h"
 #include "any.h"
@@ -18,6 +17,56 @@ const char* trimFromEnd(char *p, const char* beginning){
     }
     return p;    
 }
+
+
+int ncsv::process(const char* iline, int header) {
+    char * line = strdup(iline);
+    add(line);
+    int i = 0;
+    const char  *data[MAXCOLUMNS];
+    const char  *end = line + strlen(line);
+    data[i++] = move(line);
+
+    for (char * c=line; *c && c < end; c++){
+        
+        if ( *c == '"'){
+            c++;
+            while (*c != '"'){ c++; }
+            if (!*c) { 
+                printf("***ERROR *** in CSV FILE\n\n");
+                abort();
+            }
+            c++;                
+            *c = '\0';
+            
+            trimFromEnd(c, data[i]);
+            data[i++] = move(c);
+        } else if ( *c == ',' ) {
+            *c = '\0';
+            trimFromEnd(c, data[i]);
+            data[i++] = move(c+1);
+        }
+    }
+    
+    //for (int j=0; j < i; j++) printf("%d %s|", j, data[j]); printf("\n");
+    if ( header){
+        for (int j=0; j < i; j++){                
+            this->head[j].set(data[j]);
+        }
+        ncols = i;
+        if (ncols > MAXCOLUMNS) {
+            printf("too many columns cannot handle more than %d\n", MAXCOLUMNS);
+            exit(1);
+        }
+    } else{
+        for (int j=0; j < i; j++){
+            this->data[j][this->data[j].n].set(data[j]);
+        }
+        nrows++;
+    }
+    return ncols;
+}
+
 const char * ncsv::Read(const char *file1, int nrows, const char *ignore){
     fileName = strdup(file1);
     FILE *file;

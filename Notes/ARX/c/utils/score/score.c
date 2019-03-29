@@ -16,8 +16,6 @@
 #include "CSV.h"
 #include "ncsv.h"
 
-
-
 using namespace std;
 
 float ARModelThreshold = 0.7;
@@ -457,9 +455,12 @@ int main(int argc, char **argv){
     cfile= "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/ab1.csv";
     mfile = opts['i'];
     cfile = opts['t'];
+    
 
     ncsv model;  
+
     model.Read(mfile);
+
     model.ToDouble(Ifitness);
     model.ToDouble(Icorrelation);
     model.ToInt(In);

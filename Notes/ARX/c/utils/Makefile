@@ -2,10 +2,20 @@
 SHELL = /bin/sh
 
 OS=$(shell uname -s)
+FLAVOR=${OS}
+
+ifeq ($(OS),Linux)
+	FLAVOR=$(shell cat /etc/os-release | grep ^ID= | cut -d'=' -f2)
+else
+	ifeq ($(OS),Darwin)
+		FLAVOR=${OS}
+	endif
+endif
+
+
+PROGRAMS = INVX.EXE_$(FLAVOR)
+
 CC = g++
-
-PROGRAMS = INVX.EXE_$(OS)
-
 DEFS = -DHAVE_CONFIG_H -I.
 INCLUDES =  -I".." `pkg-config --cflags eigen3`
 CPPFLAGS = 
@@ -19,7 +29,12 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 CLINKS = echo ln -s $@ ${@%.*}
 
-all: $(PROGRAMS) CREATE_LINKS
+ifeq ($(FLAVOR),alpine)                    
+        AM_CFLAGS=-static-libstdc++ -static-libgcc     
+	INCLUDES =  -I".." -I"/usr/include/eigen3" 
+endif                   
+
+all: $(PROGRAMS)
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
 
@@ -43,9 +58,6 @@ $(PROGRAMS1): $(OBJECTS1) $(DEPENDENCIES)
 	@rm -f $(PROGRAMS1)
 	$(LINK) $(LDFLAGS) $(OBJECTS1) $(LDADD) $(LIBS)
 
-CREATE_LINKS: $(PROGRAMS)
-	ln -s  $(PROGRAMS) INVX.EXE
-
 main.o: main.c
 CSV.o: CSV.c CSV.h
 LR.o: LR.c LR.h
@@ -54,4 +66,4 @@ CSVUtils.o: CSVUtils.c CSV.h
 
 
 clean:
-	rm -f *.o $(PROGRAMS) $(PROGRAMS1) INVX.EXE SCORE.EXE core *.core OUT*
+	rm -f *.o $(PROGRAMS) $(PROGRAMS1) INVX.EXE* core *.core OUT*

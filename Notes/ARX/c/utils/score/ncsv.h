@@ -27,46 +27,8 @@ struct ncsv {
     }
     void add(char * p)      {  lines[lines.n] = p;}
     
-    int process(const char* iline, int header){
-        char * line = strdup(iline);
-        add(line);
-        int i = 0;
-        const char  *data[128];
-        
-        data[i++] = move(line);
-        
-        for (char * c=line; *c ; c++){
-            if ( *c == '"'){
-                c++;
-                while (*c != '"') c++;
-                c++;                
-                *c = '\0';
-                trimFromEnd(c, data[i]);
-                data[i++] = move(c);
-            } else if ( *c == ',' ) {
-                *c = '\0';
-                trimFromEnd(c, data[i]);
-                data[i++] = move(c+1);
-            }
-        }
-        //for (int j=0; j < i; j++) printf("%d %s|", j, data[j]); printf("\n");
-        if ( header){
-            for (int j=0; j < i; j++){                
-                this->head[j].set(data[j]);
-            }
-            ncols = i;
-            if (ncols > MAXCOLUMNS) {
-                printf("too many columns cannot handle more than %d\n", MAXCOLUMNS);
-                exit(1);
-            }
-        } else{
-            for (int j=0; j < i; j++){
-                this->data[j][this->data[j].n].set(data[j]);
-            }
-            nrows++;
-        }
-        return ncols;
-    }
+    int process(const char* iline, int header);
+
     void dumphead(FILE * fd=stderr);
     void dumprow(int i, FILE *fd=stderr);
     void dump(FILE* fd=stderr);
