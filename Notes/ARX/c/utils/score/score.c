@@ -437,14 +437,13 @@ void filter(ncsv &model){
                    (1.0 * fil/model.nrows), (model.nrows-fil));
 }
 
-
 void test() {
     any a1("Sada");
     any a2(10);
     any a3(11.0);
     print("%s %d %f \n",(const char*)a1, (int)a2, (double)a3);
 }
-int main(int argc, char **argv){
+int main_score(int argc, char **argv){
     //test(); return 0;
     getopts(argc, argv); 
     
@@ -452,13 +451,11 @@ int main(int argc, char **argv){
     const char * mfile;
     const char * cfile;
     mfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/normal1.csv.model.csv";
-    cfile= "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/ab1.csv";
+    cfile = "/NEC/SIAT-OLD/SIAT-OLD/benchmarks/ab1.csv";
     mfile = opts['i'];
     cfile = opts['t'];
     
-
     ncsv model;  
-
     model.Read(mfile);
 
     model.ToDouble(Ifitness);
@@ -472,12 +469,15 @@ int main(int argc, char **argv){
         printf ("#Filtering the model ... \n");
         filter(model);
     }
-    //model.dump(); return 0;
     CSV df(cfile);
     
-    MAXBROKENS_TO_PRINT  = getfopt('A', 5000);
+    MAXBROKENS_TO_PRINT  = getfopt('A', 500);
     FindResiduals(model, df, getfopt('s',0), getfopt('e',1024*1024));
     w.Stop("## Time to Complete: ");
     return 0;
-    df.Dump();
 }
+//-------------------------------------------------------------------------------
+int main(int argc, char **argv){
+    return main_score(argc, argv);
+}
+

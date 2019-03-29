@@ -18,7 +18,6 @@ const char* trimFromEnd(char *p, const char* beginning){
     return p;    
 }
 
-
 int ncsv::process(const char* iline, int header) {
     char * line = strdup(iline);
     add(line);
@@ -28,7 +27,6 @@ int ncsv::process(const char* iline, int header) {
     data[i++] = move(line);
 
     for (char * c=line; *c && c < end; c++){
-        
         if ( *c == '"'){
             c++;
             while (*c != '"'){ c++; }
@@ -118,8 +116,8 @@ void ncsv::dump(FILE* fd){
     fprintf(fd, "Size: %d x %d\n", nrows, ncols);
 }
 
-void ncsv::AddColumn(const char* c, void ** values){
-    head[ncols++].set(strdup(c));
+void ncsv::AddColumn(const char* colName, void ** values){
+    head[ncols++].set(strdup(colName));
     if (ncols > MAXCOLUMNS) {
         printf("too many columns cannot handle more than %d\n", MAXCOLUMNS);
         exit(1);
