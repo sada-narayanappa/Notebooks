@@ -45,7 +45,7 @@ $(PROGRAMS): $(OBJECTS) $(DEPENDENCIES)
 	$(LINK) $(OBJECTS) $(LIBS)
 
 lib: $(OBJECTS) $(DEPENDENCIES)
-	$(CCLD) -shared -o libscore.so $(OBJECTS) 
+	$(CCLD) -shared -o libscore_${FLAVOR}.so $(OBJECTS) 
     
 #$(CCLD) -L. -Wall -o test main.c -lscore
 

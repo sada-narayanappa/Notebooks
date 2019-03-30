@@ -437,11 +437,17 @@ void filter(ncsv &model){
                    (1.0 * fil/model.nrows), (model.nrows-fil));
 }
 
-void test() {
+extern "C" {
+int testp(int r, char **argv=NULL) {
     any a1("Sada");
     any a2(10);
     any a3(11.0);
     print("%s %d %f \n",(const char*)a1, (int)a2, (double)a3);
+    for (int i =0; i < r; i++ ) {
+        print("%s \n", argv[i++]);
+    }
+    return r+1;
+}
 }
 int main_score(int argc, char **argv){
     //test(); return 0;

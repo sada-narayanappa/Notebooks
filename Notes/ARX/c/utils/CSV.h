@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-
 #define LINESIZE   8 * 1024 * 256
 
 int isspace ( int c );
@@ -47,7 +46,6 @@ public:
             delete []data;
     }
     void Dump(int numRows = 4);
-    
     
     void GetColumns(char *iline) {
         const char* tok;
