@@ -58,10 +58,19 @@ double predict3(const double *x, const double *y,
     double yh = theta[n+m+1];
     
     for(int i=0; i <n; i++){
+        if ( isnan(y[t-n+i]) ) {
+            print ("Nan...");
+            return 0;
+        }
+            
         yh += y[t-n+i] * theta[n-1-i];
         //printf("predict3 y++ %lf %lf %lf\n", y[t-n+i], theta[n-1-i], yh); 
     }
     for(int i=0; i < m+1; i++){
+        if ( isnan( x[t-k-i]) ) {
+            print ("Nan...");
+            return 0;
+        }
         yh += x[t-k-i] * theta[i+n];
         //printf("predict3 x++ %lf %lf %lf\n" , x[t-k-i], theta[i+n],yh);
     }    
@@ -84,7 +93,6 @@ double predict3(const double *x, const double *y,
     rs = (y[t] - yh);
     return yh;
 }
-
 //---------------------------------------------------------------------------------
 void createTheta(const ncsv &csv, vector< vector<double> > &mtheta){
     int nrows = csv.nrows;
@@ -104,7 +112,6 @@ void createTheta(const ncsv &csv, vector< vector<double> > &mtheta){
         }
     }
 }
-
 #define IuName       0
 #define IyName       1
 #define Ifitness     2
@@ -139,7 +146,7 @@ void FindScore1(int t, double sumFit,
                map<string, int> &edgeCounts, 
                vector< vector<double> > &theta,
                map<string, int> &colIdx,
-               marray<int>& uIdx, marray<int>& yIdx ) {
+               marray<int>& uIdx, marray<int>& yIdx , FILE* FOUT) {
     
     int n,m,k; 
     double fitness, threshold, corr; 
@@ -208,9 +215,9 @@ void FindScore1(int t, double sumFit,
             }
         }
     }
-    printf("=>%d,%d,%lf,%d,\"[",t,(int)adf.data[0][t],anomScore,brknCount);
+    fprintf(FOUT,"=>%d,%d,%lf,%d,\"[",t,(int)adf.data[0][t],anomScore,brknCount);
     if (getfopt('a', (const char*) (NULL))) {
-        printf("]\"\n");
+        fprintf(FOUT,"]\"\n");
         return;
     }
     
@@ -221,11 +228,11 @@ void FindScore1(int t, double sumFit,
     for (multimap<double, string>::reverse_iterator it=dstp.rbegin(); it != dstp.rend(); it++){
         const char * pr = it->second.c_str();
         double res = brknPairsRes[it->second];
-        printf("[%s,%f,%f],", pr, res, it->first);
+        fprintf(FOUT, "[%s,%f,%f],", pr, res, it->first);
         if ( i++ > MAXBROKENS_TO_PRINT)
             break;
     }
-    printf("]\",\"[");
+    fprintf(FOUT, "]\",\"[");
     i=0;
     for ( map<string, double>::iterator it = brknSensors.begin(); it != brknSensors.end(); it++ ){
         brknSensors[it->first] = brknSensors[it->first]/edgeCounts[it->first];
@@ -235,11 +242,11 @@ void FindScore1(int t, double sumFit,
     }
     multimap<double, string> dst = flip_map(brknSensors);
     for (multimap<double, string>::reverse_iterator it=dst.rbegin(); it != dst.rend(); it++){
-        printf("[%s,%lf,%d],",it->second.c_str(), it->first, brknSensorsCount[it->second]);
+        fprintf(FOUT, "[%s,%lf,%d],",it->second.c_str(), it->first, brknSensorsCount[it->second]);
         if ( i++ > MAXBROKENS_TO_PRINT)
             break;
     }
-    printf("]\"\n");
+    fprintf(FOUT, "]\"\n");
 }
 //------------------------------------------------------------------------------
 int dmax(const ncsv &model, int idx1, int idx2){
@@ -261,7 +268,6 @@ double dsum(const ncsv &model, int idx){
 }
 
 void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024*1024){
-    
     int nmax = dmax(model, In, -1); 
     int mkmax= dmax(model, Im, Ik);  
     double sumFit  = dsum (model, Ifitness);
@@ -282,6 +288,7 @@ void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024
     marray<int> uIdx;
     marray<int> yIdx;
     map<string, int> edgeCounts;
+
     for (int i =0; i < model.nrows; i++){
         string s1 = model.data[0][i].data.c;
         string s2 = model.data[1][i].data.c;
@@ -291,20 +298,20 @@ void FindResiduals(const ncsv &model, const CSV &adf, int start=0, int stop=1024
         uIdx[i] = colIdx[s1];
         yIdx[i] = colIdx[s2];
     }
-    /*
-    map<string, int>::iterator it;
-    for ( it = edgeCounts.begin(); it != edgeCounts.end(); it++ ){
-        std::cout << it->first << ":"<< it->second << endl;
-    }
-    */
     vector<vector<double> > mtheta;
     createTheta(model, mtheta);
     
+
+    const char * ofile = getfopt('o', (const char*) (NULL));
+	 FILE * FOUTP =  (!ofile) ? stdout : fopen(ofile, "w");
+    fprintf(FOUTP,"line,timestamp,score,NumBrkn,brokenPairs,brokenSensors\n");
+
     for (int t=start; t < stop; t++){
-        FindScore1(t, sumFit, model, adf, edgeCounts, mtheta,colIdx,uIdx, yIdx );
+        FindScore1(t, sumFit, model, adf, edgeCounts, mtheta,colIdx,uIdx, yIdx, FOUTP);
         if (t> 1024*1024) 
             break;
     }
+    if ( ofile != NULL) fclose(FOUTP);
 }
 /*-----------------------------------------------------------------------------------
 Parameters: 
@@ -323,6 +330,7 @@ void getopts(int argc, char **argv) {
             "     -E filter threshold \n"
             "     -B filter both(any) fitness score must be atleast this much \n"
             "     -O output filtered model \n"
+            "     -o output file\n"
             "     -s start row in inference file\n"
             "     -e end row in inference file \n"
             "     -a Print only Anomaly Score \n"
@@ -331,7 +339,7 @@ void getopts(int argc, char **argv) {
            );    
 
     int c;
-    while ((c = getopt (argc, argv, "i:t:E:B:OseaAW:")) != -1){
+    while ((c = getopt (argc, argv, "i:t:E:B:o:OseaAW:")) != -1){
         opts[c] = optarg ? optarg : "-";
     }
     for (int i = optind; i < argc; i++)
@@ -437,20 +445,7 @@ void filter(ncsv &model){
                    (1.0 * fil/model.nrows), (model.nrows-fil));
 }
 
-extern "C" {
-int testp(int r, char **argv=NULL) {
-    any a1("Sada");
-    any a2(10);
-    any a3(11.0);
-    print("%s %d %f \n",(const char*)a1, (int)a2, (double)a3);
-    for (int i =0; i < r; i++ ) {
-        print("%s \n", argv[i++]);
-    }
-    return r+1;
-}
-}
 int main_score(int argc, char **argv){
-    //test(); return 0;
     getopts(argc, argv); 
     
     Watch w;
@@ -483,7 +478,25 @@ int main_score(int argc, char **argv){
     return 0;
 }
 //-------------------------------------------------------------------------------
+extern "C" {
+int testp(int r, char **argv=NULL) {
+    any a1("Sada");
+    any a2(10);
+    any a3(11.0);
+    print("%s %d %f \n",(const char*)a1, (int)a2, (double)a3);
+    for (int i =0; i < r; i++ ) {
+        print("%s \n", argv[i++]);
+    }
+    return r+1;
+}
+int test1(){
+    double d = NAN;
+    printf("%f %f %f %f %f\n", d, atof(" "), std::atof(" "), atof("INF"), std::atof("nan") );
+    return 0;
+}
+}
 int main(int argc, char **argv){
+    //test1(); return 0;
     return main_score(argc, argv);
 }
 

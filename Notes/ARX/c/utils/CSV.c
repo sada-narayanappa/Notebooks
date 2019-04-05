@@ -113,16 +113,18 @@ const char* CSV::Read(const char *filename, int nrows, int *columns, const char 
     int i = 0;
     while (fgets(line, LINESIZE, file) && (i < nrows || nrows < 0)){
         char * line1 = Trim(line);
+        char * sline = line1;
+        
         if (strlen(line1) <= 0 || strncmp(line, ignore, strlen(ignore)) == 0 ){
             continue;
         }
         int j = 0;
         const char* tok;
 
-        //printf("=>%s\n",line1);
-        for (tok = strtok(line, ","); tok && *tok; j++, tok = strtok(NULL, ",\n")) {
-            data[j][i] = atof(tok);
+        while ((tok = strsep(&sline, ",")) != NULL){
+            data[j++][i] = strlen(tok)>0 ? atof(tok): atof("nan");
         }
+
         i++;
         nRows++;
     }

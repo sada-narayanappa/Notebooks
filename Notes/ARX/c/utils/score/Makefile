@@ -11,6 +11,7 @@ else
 endif
 
 CC = g++
+#CC=/app/gcc-linaro-7.3.1-2018.05-i686_arm-linux-gnueabihf/bin/g++
 PROGRAMS = SCORE.EXE_$(FLAVOR)
 DEFS = -DHAVE_CONFIG_H -I.
 INCLUDES =  -I".."
@@ -43,6 +44,9 @@ all: $(PROGRAMS)
 $(PROGRAMS): $(OBJECTS) $(DEPENDENCIES)
 	@rm -f $(PROGRAMS)
 	$(LINK) $(OBJECTS) $(LIBS)
+
+run:
+	 ./SCORE.EXE_Darwin -i /tmp/normal1.csv.model.csv -t /tmp/abnormal1.csv -o test.out
 
 lib: $(OBJECTS) $(DEPENDENCIES)
 	$(CCLD) -shared -o libscore_${FLAVOR}.so $(OBJECTS) 

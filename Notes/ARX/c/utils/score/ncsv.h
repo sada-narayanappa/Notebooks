@@ -1,9 +1,6 @@
 #ifndef ncsv_HPP
 #define ncsv_HPP
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
 #include "any.h"
 
 #define LINESIZE   8 * 1024 * 256
@@ -35,14 +32,12 @@ struct ncsv {
     const char * Read(const char *file1, int nrows=1024*1024, const char *ignore="#");
     
     void ToInt(int column){
-        for (int j=0; j < nrows; j++){
+        for (int j=0; j < nrows; j++)
             data[column][j].ToInt();
-        }
     }
     void ToDouble(int column){
-        for (int j=0; j < nrows; j++){
+        for (int j=0; j < nrows; j++)
             data[column][j].ToDouble();
-        }
     }
     void AddColumn(const char* c, void ** values = NULL);
 };

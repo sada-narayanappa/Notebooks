@@ -1,8 +1,6 @@
 #ifndef any_HPP
 #define any_HPP
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
 
 //0 int;1 double; 2 const char*;
@@ -24,6 +22,8 @@ struct any {
     any(int i    ): type(TYPEINT),    deletePtr(0){data.i=i;}  
     any(double d ): type(TYPEDOUBLE), deletePtr(0){data.d=d;}  
     any(const any& o){
+        if ( this == &o)  return;
+        
         deletePtr = o.deletePtr;
         type = o.type;
         data = o.data;
@@ -63,7 +63,7 @@ struct any {
     }
     void ToDouble() {
         switch (type){
-            case TYPECHAR:   data.d = atof(data.c); break;
+            case TYPECHAR:   data.d = strlen(data.c) > 0 ? atof(data.c): atof("nan"); break;
             case TYPEINT:    data.d = (double)(data.i); break;
             case TYPEDOUBLE: break;
         }
