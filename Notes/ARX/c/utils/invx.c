@@ -18,9 +18,12 @@
 #include <map>
 using namespace std;
 
+int BEG_N=0;
 int MAX_N=2;
 int MAX_M=1;
+int BEG_K=0;
 int MAX_K=2;
+int R_IDX=0;
 
 typedef vector< vector<double> > ThetaType;
 map<char, any> opts;
@@ -188,11 +191,20 @@ void findBest(const Eigen::VectorXd& y, const Eigen::VectorXd& x,
     int n,m,k, bestn, bestm, bestk;
     
     int nMAX = aRMap[indexOfyColumn].isAR ? 1:MAX_N+1;
-        
+
+    // If we are generating model for resiliency index for order 1 ODE
+    // Note if this is for first order differential equation: 
+    // if R_IDX =1
+    // BEG_N = MAX_N = 1; MAX_K= BEG_K =1; MAX_M=0;   ==> we set these in the beginning
+    
+    if (R_IDX){
+        nMAX = MAX_N+1; // we search only for one value
+    }
+    
     Eigen::VectorXd theta;
-    for(n=0; n < nMAX; n++)
+    for(n=BEG_N; n < nMAX; n++)
         for (m=0; m <= MAX_M; m++)
-            for (k=0; k  <= MAX_K; k++) {                
+            for (k= BEG_K; k  <= MAX_K; k++) {                
                 ARXModelLR(y, x,n,m,k, theta);
                 double fitscore = FitnessScore(x,y,n,m,k, theta);
                 if ( fitscore > best.fitscore ) { 
@@ -288,10 +300,14 @@ void CreateInvariants(const char * file, const CSV& df,const Eigen::MatrixXd& xx
             }
             best.u = u;
             best.v = v;
+            
+            
             findBest(y, x, best, j, v);
             const char * o = best.Dump();
+            
             if (out) { fprintf(ofile, "%s", o);} 
             else printf("%s",o);
+            
             best.corr = mcorr(x,y);
             nvars++;
         }
@@ -406,11 +422,13 @@ void getopts(int argc, char **argv) {
             "     -K MAX_K (default: 2) \n"
             "     -s start columns\n"
             "     -e end column \n"
+            "     -R - create SIAT model for resiliency Index\n"
+            "\n"
            );    
 
     int c;
-    while ((c = getopt (argc, argv, "i:t:N:M:K:s:e:")) != -1){
-        opts[c] = optarg ? optarg : "-";
+    while ((c = getopt (argc, argv, "i:t:N:M:K:s:e:R")) != -1){
+        opts[c] = optarg ? optarg : "1";
     }
     for (int i = optind; i < argc; i++)
         opts[128+i] = argv[i];
@@ -428,8 +446,10 @@ void getopts(int argc, char **argv) {
         fprintf(stderr,"  -[%c] (%5d) [%s]\n", it->first, hj, it->second.data.c);
     }
 }
+
 //-------------------------------------------------------------------------------
 int main_invx(int argc, char **argv){
+
     Watch w;
     getopts(argc, argv); 
     if (argc <= 1){
@@ -445,9 +465,19 @@ int main_invx(int argc, char **argv){
     MAX_N = getfopt('N',2);          // (argc > 3) ? atoi(argv[3]): 0;
     MAX_M = getfopt('M',1);          // (argc > 3) ? atoi(argv[3]): 0;
     MAX_K = getfopt('K',2);          // (argc > 3) ? atoi(argv[3]): 0;
-    
+
+    R_IDX = getfopt('R',0);          // (argc > 3) ? atoi(argv[3]): 0;
+
+    if (R_IDX) {
+        fprintf(stderr,"\n**NOTE**\n\n: Generating model for Resiliency Index.\n\n");
+        BEG_K = MAX_K = 1;
+        BEG_N = MAX_N = 1;
+        MAX_M = 0;
+    }
+
     int ret;
     CSV df(file);
+    
     if ( df.error != NULL || df.nRows <= 2 || df.nColumns <= 1) {
         printf("**NOTE** File not found or Not enough data in %s ... CHECK File contents \n", file);
         return 0;

@@ -47,10 +47,13 @@ char *Trim(char *str){
     if(*str == 0) return str;
 
     end = str + strlen(str) - 1;                // Trim trailing space
-    while(end > str && isspace((unsigned char)*end)) end--;
-
-    if ( end > str)
-        end[1] = '\0';                              // Write new null terminator character
+    if ( str == end )
+        return str;
+    
+    while(end > str && isspace((unsigned char)*end) ) {
+        end--;
+    }
+    end[1] = '\0';
     return str;
 }
 

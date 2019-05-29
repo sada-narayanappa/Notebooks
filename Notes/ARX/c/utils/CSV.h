@@ -65,6 +65,10 @@ public:
         for (tok = strtok(line, ","); tok && *tok; j++, tok = strtok(NULL, ",\n")) {
             header[j] = strdup(tok); 
             Trim(header[j]);
+            //char ch =header[j][strlen(header[j])-1];
+            //printf("===> %s %d %d \n", header[j], '\r' == ch, isspace((unsigned char)ch)  );
+                
+            
         }
         free(line);
         
