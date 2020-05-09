@@ -1,4 +1,6 @@
 OLD
+no-git
+DS/*
 DS
 Jupytils
 nohup.out
@@ -28,4 +30,3 @@ OOO*
 *.EXE
 a.out
 Sites
-LearnDjango
